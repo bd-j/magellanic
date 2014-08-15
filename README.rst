@@ -1,5 +1,5 @@
 Magellanic
-===
+=====
 
 Code for working with magellanic cloud data
 
