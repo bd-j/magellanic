@@ -1,0 +1,6 @@
+*/*.fits
+*/*.gz
+*/.DS_Store
+*/detritus
+*/results/
+presentations
