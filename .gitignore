@@ -1,6 +1,8 @@
 */*.fits
 */*.gz
-*/.DS_Store
+.DS_Store
 */detritus
 */results/
 presentations
+*pyc
+*~
