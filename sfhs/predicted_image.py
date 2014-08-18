@@ -2,6 +2,7 @@
 import sys
 import numpy as np
 import matplotlib.pyplot as pl
+import pickle
 
 import astropy.io.fits as pyfits
 import regionsed
@@ -11,14 +12,16 @@ import fsps
 #  of structured arrays
 import sfhutils as utils
 
-cloud, min_tpagb_age, filters = 'lmc', 0, ['galex_NUV', 'spitzer_irac_ch1', 'spitzer_irac_ch4', 'spitzer_mips_24']
-
+cloud, filters = 'smc', ['galex_NUV', 'spitzer_irac_ch1', 'spitzer_irac_ch4', 'spitzer_mips_24']
+min_tpagb_age, lf_band, wave, agb_dust = 0.0, '4', '{8\mu m}', 1.0
+ldir = 'lf_data/'
+outdir = 'tmp/'
 #########
 # Initialize the import objects (SPS, SFHs, LFs)
 #########
 # SPS
 sps = fsps.StellarPopulation(add_agb_dust_model = True)
-sps.params['agb_dust'] = 1
+sps.params['agb_dust'] = agb_dust
 dust = ['nodust', 'agbdust']
 sps.params['imf_type'] = 0.0
 
@@ -26,59 +29,62 @@ sps.params['imf_type'] = 0.0
 if cloud.lower() == 'lmc':
     regions = utils.lmc_regions()
     dm = 18.5
-    lffile = 'lf_data/irac4_luminosity_function_lmc.txt'
+    zlist = [7, 11, 13, 16]
+    lffiles = ['{0}z{1:02.0f}_tau{2:02.0f}_vega_irac{3}_lf.txt'.format(ldir, z, agb_dust*10, lf_band) for z in zlist]
 elif cloud.lower() == 'smc':
     regions = utils.smc_regions()
     dm = 18.9
-    lffile = 'lf_data/irac4_luminosity_function.txt'
-
+    zlist = [7, 13, 16]
+    lffiles = ['{0}z{1:02.0f}_tau{2:02.0f}_vega_irac{3}_lf.txt'.format(ldir, z, agb_dust*10, lf_band) for z in zlist]
 else:
     print('do not understand your MC designation')
 
 # LFs
 try:
-    lf_basis = utils.read_lfs(lffile)
-
+    lf_bases = [utils.read_lfs(f) for f in lffiles]
     #zero out select ages
-    blank = lf_basis['ssp_ages'] <= min_tpagb_age
-    lf_basis['lf'][blank,:] = 0
-    #plot the lfs to make sure they are ok
-    ncolors = lf_basis['lf'].shape[0]
-    cm = pl.get_cmap('gist_rainbow')
-    fig = pl.figure()
-    ax = fig.add_subplot(111)
-    ax.set_color_cycle([cm(1.*i/ncolors) for i in range(ncolors)])
-    for i,t in enumerate(lf_basis['ssp_ages']):
-        #if t <= 8.6:
-        #    continue
-        ax.plot(lf_basis['bins'], lf_basis['lf'][i,:], linewidth = 3,
-                label = '{:4.2f}'.format(t), color = cm(1.*i/ncolors))
-    ax.legend(loc =0, prop = {'size':6})
-    ax.set_ylim(1e-6,1e-4)
-    ax.set_yscale('log')
-    ax.set_xlabel(r'$M_{{8\mu m}}$')
-    ax.set_ylabel(r'$n(<M, t)$')
-    fig.savefig('agb_8m_lf_{1}.mint{0:.1f}.png'.format(min_tpagb_age, cloud))
-    pl.close(fig)
+
+    for j, base in enumerate(lf_bases):
+        blank = base['ssp_ages'] <= min_tpagb_age
+        base['lf'][blank,:] = 0
+    
+        #plot the lfs to make sure they are ok
+        ncolors = base['lf'].shape[0]
+        cm = pl.get_cmap('gist_rainbow')
+        fig = pl.figure()
+        ax = fig.add_subplot(111)
+        ax.set_color_cycle([cm(1.*i/ncolors) for i in range(ncolors)])
+        for i,t in enumerate(base['ssp_ages']):
+            ax.plot(base['bins'], base['lf'][i,:], linewidth = 3,
+                    label = '{:4.2f}'.format(t), color = cm(1.*i/ncolors))
+        ax.legend(loc =0, prop = {'size':6})
+        ax.set_ylim(1e-6,3e-4)
+        ax.set_yscale('log')
+        ax.set_xlabel(r'$M_{}$'.format(wave))
+        ax.set_ylabel(r'$n(<M, t)$')
+        fig.savefig('{}.png'.format(lffiles[j].replace('.txt','')))
+        pl.close(fig)
 
 except(NameError):
-    lf_basis = None
-
-#sys.exit()
+    lf_bases = None
 
     
-#modify the agb LFs by blanking the     
-#main piece of code to do all the SFH integrations
-dat = regionsed.regionsed(regions, sps, lf_basis = lf_basis, filters = filters,)
+###############
+# Main piece of code to do all the SFH integrations
+###############
+dat = regionsed.regionsed(regions, sps, lf_bases = lf_bases, filters = filters,)
 locs, name, mags, lfs = dat
-bins = lf_basis['bins']
+#bins = lf_basis['bins']
+bins = regionsed.lbins
 ind_lmax = np.searchsorted(bins, -8.5) -1
 
-
-#convert pixel letters to numbers and generate output
+#############
+# Build output images and LF cubes
+############
+# Convert pixel letters to numbers and generate output
 cell = [( ord(n[0].upper()) - ord('A'), ord(n[1].upper()) - ord('A')) for n in name]
 cell = np.array(cell)
-#dilate lmc pixels
+# Dilate lmc pixels
 factor = 2 - int(cloud == 'smc')
 nx, ny = (cell[:,0].max()+1), (cell[:,1].max()+1)
 im = np.zeros([ len(filters), nx * factor, ny * factor])
@@ -99,7 +105,11 @@ for i, n in enumerate(name):
         if lfs is not None:
             agb[:, x:x+2, y:y+2] = lfs[i,:, None, None]/4.
 
-#write out images as fits and jpg
+#############
+# Write output
+############
+            
+# Write out images as fits and jpg
 for i, f in enumerate(filters):
     fig, ax = pl.subplots(1,1)
     image = ax.imshow(np.log10(im[i,:,:].T), interpolation = 'nearest', origin = 'lower')
@@ -108,7 +118,7 @@ for i, f in enumerate(filters):
     ax.set_ylabel('Dec (pixels)')
     cbar = pl.colorbar(image, orientation = 'horizontal', shrink = 0.7, pad = 0.12)
     cbar.set_label(r'log F({0}) (AB maggies)'.format(f))
-    fstring = '{0}.log_{1}.{2}.harris_zaritsky'.format(cloud, f, dust[int(sps.params['agb_dust'])])
+    fstring = '{3}{0}.log_{1}.{2}.harris_zaritsky'.format(cloud, f, dust[int(sps.params['agb_dust'])], outdir)
     pl.savefig(fstring + '.png')
     pl.close(fig)
     pyfits.writeto(fstring + '.fits', im[i,:,:].T, clobber = True)
@@ -116,31 +126,24 @@ for i, f in enumerate(filters):
 #write out AGB N(>M) images as fits
 for lim in np.arange(-6.7, -9.5, -0.5):
     ind = np.searchsorted(bins, lim) -1
-    pyfits.writeto('{0}.Nagb_clf.mint{2:0.1f}.M8_AB{1:.1f}.fits'.format(cloud, lim, min_tpagb_age), agb[ind,:,:].T, clobber = True)
+#    pyfits.writeto('test.fits', agb[ind,:,:].T, clobber = True)
 
-#plot the total LF
+#write out AGB N(>M) images as a pickle file
+agb_cube = {}
+agb_cube['agb_clf_cube'] = agb
+agb_cube['mag_bins'] = bins
+out = open("{0}clf.{1}.tau{02:2.0f}.irac{3}.p".format(outdir, cloud.lower(), agb_dust*10, lf_band), "wb")
+pickle.dump(agb_cube, out)
+out.close()
 
+# Plot the total LF
 fig, ax = pl.subplots(1,1)
 lf_tot = agb.sum(-1).sum(-1)
-ax.plot(bins - 4.4 + dm, lf_tot)
+ax.plot(bins + dm, lf_tot)
 ax.set_ylabel(r'$N(<M)$ (total for cloud)')
-ax.set_xlabel(r'$m_{8\mu m}$ (Vega apparent)')
+ax.set_xlabel(r'$m_{}$ (Vega apparent)'.format(wave))
 ax.set_title(cloud.upper())
 ax.set_yscale('log')
-fig.savefig('total_agb_lf_{}.png'.format(cloud.lower()))
+fig.savefig('{0}total_agb_clf.{1}.tau{02:2.0f}.irac{3}.png'.format(outdir, cloud.lower(), agb_dust*10, lf_band))
 
 
-#write out AGB N(>M) images as png
-ind = np.searchsorted(bins, -6.7) -1
-
-pl.figure()
-fig, ax = pl.subplots(1,1)
-image = ax.imshow(agb[ind,:,:].T, interpolation = 'nearest', origin = 'lower')
-ax.set_title('{0}'.format(cloud.upper()))
-ax.set_xlabel('RA (pixels)')
-ax.set_ylabel('Dec (pixels)')
-cbar = pl.colorbar(image, orientation = 'horizontal', shrink = 0.7, pad = 0.12)
-cbar.set_label(r'$N_{{agb}} (M < {0:.2f})$ (per pixel)'.format(bins[ind]))
-fstring = '{0}.Nagb_clf.mint{2:0.1f}.M8_AB{1:.1f}'.format(cloud, bins[ind], min_tpagb_age)
-pl.savefig(fstring + '.png')
-pl.close(fig)

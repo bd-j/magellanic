@@ -7,8 +7,9 @@ from sedpy import attenuation, observate
 from scipy.interpolate import interp1d
 
 #maggies_to_cgs = 10**(-0.4*(2.406 + 5*np.log10([f.wave_effective for f in filterlist])))
-
-def regionsed(regions, sps, filters = ['galex_NUV'], lf_basis = None):
+lbins = np.arange(-20, 1, 0.025)
+    
+def regionsed(regions, sps, filters = ['galex_NUV'], lf_bases = None):
     """
     Given a cloud name (lmc | smc) and a filter, determine the
     broadband flux of each region in that cloud based on the SFHs of
@@ -24,7 +25,7 @@ def regionsed(regions, sps, filters = ['galex_NUV'], lf_basis = None):
 
     #set up output
     try:
-        nb = len(lf_basis['bins'])
+        nb = len(lbins)
     except:
         nb = 1
     regname, alllocs = [], []
@@ -34,7 +35,7 @@ def regionsed(regions, sps, filters = ['galex_NUV'], lf_basis = None):
     #loop over regions
     for j, (k, data) in enumerate(regions.iteritems()):
         spec, lf, wave = one_region(data['sfhs'], data['zmet'],
-                                    sps, lf_basis = lf_basis)
+                                    sps, lf_bases = lf_bases)
 
         #project filters
         mags = observate.getSED(wave, spec * bsp.to_cgs, filterlist = filterlist)
@@ -46,7 +47,7 @@ def regionsed(regions, sps, filters = ['galex_NUV'], lf_basis = None):
         
     return alllocs, regname, allmags, all_lfs
 
-def one_region(sfhs, zmet, sps, t_lookback = 0, lf_basis = None):
+def one_region(sfhs, zmet, sps, t_lookback = 0, lf_bases = None):
     """
     Get the spectrum and AGB LF of one region, given SFHs for each
     metallicity, a stellar population object, and lf_basis
@@ -54,8 +55,13 @@ def one_region(sfhs, zmet, sps, t_lookback = 0, lf_basis = None):
     spec = np.zeros(sps.wavelengths.shape[0])
     lf = 0
     mstar = 0
+    
+    nsfh = len(sfhs)
+    if lf_bases is None:
+        lf_bases = nsfh * [None]
+        
     #loop over metallicities for each region
-    for i,sfh in enumerate(sfhs):
+    for i, (sfh, lf_basis) in enumerate(zip(sfhs, lf_bases)):
         #choose nearest metallicity
         zindex = np.abs(sps.zlegend - zmet[i]).argmin() + 1
         sps.params['zmet'] = np.clip(zindex, 1, 5)
@@ -77,11 +83,11 @@ def one_region(sfhs, zmet, sps, t_lookback = 0, lf_basis = None):
         wave, zspec, aw = bsp.bursty_sps(t_lookback, lt, sfr, sps, av = None, dav = None)
         spec += zspec[0,:]
         mstar += mtot
-        # Get the agb LF from this metalicity interpolate onto
+        # Get the agb LF from this mettalicity interpolate onto
         # lbins, and add to total LF
         if lf_basis is not None:
             bins, zlf, aw = bsp.bursty_lf(t_lookback, lt, sfr, lf_basis)
             lf8 = interp1d(bins, zlf, bounds_error =False)
-            lf += lf8(lf_basis['bins'])[0,:]
-
+#            lf += lf8(lf_basis['bins'])[0,:]
+            lf += lf8(lbins)[0,:]
     return spec, lf, wave
