@@ -1,7 +1,7 @@
 import numpy as np
 import astropy.io.fits as pyfits
 
-catname = '/Users/bjohnson/Projects/magellanic/catalog/boyer11.fits'
+catname = '/Users/bjohnson/Projects/magellanic/catalog/boyer11_smc.fits'
 rafield, decfield = 'RAJ200', 'DEJ2000'
 
 def main():
@@ -11,7 +11,7 @@ def main():
     for name, dat in regions.iteritems():
         defstring = corners_of_region(name, dat['loc'], cloud, string=True)
         ds9reg = ds9.Polygon(defstring)
-        this = select(catalog, ds9reg)
+        this = select(catalog, ds9reg, codes=codes)
         
 
 def select(catalog, region):

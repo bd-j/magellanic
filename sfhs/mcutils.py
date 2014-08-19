@@ -3,7 +3,9 @@ from hzutils import *
 
 def xy_to_regname(x,y, cloud='smc'):
     """
-    Map image pixels to region names
+    Map image pixels to region names.  If in the smc, do not give
+    subregion numbers.  In the lmc, subregion numbers are always
+    given.
     """
     if cloud.lower() == 'smc':
         factor = 1
@@ -18,7 +20,8 @@ def xy_to_regname(x,y, cloud='smc'):
 
 def regname_to_xy(regname, cloud='smc'):
     """
-    Map region names to image pixels
+    Map region names to image pixels, accounting for the coadded
+    pixels in the LMC regions.
     """
     n = regname
     a = ord('A')
@@ -57,3 +60,13 @@ def mc_ast(cloud):
         #the dra in deg worked out from figure 3 of H & Z
         cdelt = [0.5/11 * 15., 12./60.]
     return crpix, crval, cdelt, [nx, ny]#, regions
+
+
+def parse_locstring(locstring):
+    loc = locstring.split()    
+    ddeg = float(loc[3][:-1])
+    dec = np.sign(ddeg) * (abs(ddeg) + float(loc[4][:-1])/60.) #use reported coords
+    ra = 15.*( float(loc[1][:-1]) + float(loc[2][:-1])/60.)
+    return ra, dec
+
+

@@ -13,18 +13,19 @@ import mcutils as utils
 
 def main():
     #Run parameters
-    cloud, filters = 'smc', ['galex_NUV', 'spitzer_irac_ch1', 'spitzer_irac_ch4', 'spitzer_mips_24']
-    min_tpagb_age, lf_band, wave, agb_dust = 0.0, '4', '{8\mu m}', 1.0
-    ldir, outdir = 'lf_data/', 'test/'
+    cloud, filters = 'lmc', ['galex_NUV', 'spitzer_irac_ch1', 'spitzer_irac_ch4', 'spitzer_mips_24']
+    min_tpagb_age, lf_band, wave, agb_dust = 0.0, '2', '{4.5\mu m}', 1.0
+    ldir, outdir = 'lf_data/', 'results_predicted/'
     
     #########
     # Initialize the ingredients (SPS, SFHs, LFs)
     #########
     # SPS
     sps = fsps.StellarPopulation(add_agb_dust_model = True)
+    sps.params['sfh'] = 0
     sps.params['agb_dust'] = agb_dust
     dust = ['nodust', 'agbdust']
-    sps.params['imf_type'] = 0.0
+    sps.params['imf_type'] = 0.0 #salpeter
 
     filterlist = observate.load_filters(filters)
     
