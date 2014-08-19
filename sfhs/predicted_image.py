@@ -12,7 +12,7 @@ import sfhutils as utils
 
 def main():
     cloud, filters = 'smc', ['galex_NUV', 'spitzer_irac_ch1', 'spitzer_irac_ch4', 'spitzer_mips_24']
-    min_tpagb_age, lf_band, wave, agb_dust = 0.0, '4', '{8\mu m}', 0.5
+    min_tpagb_age, lf_band, wave, agb_dust = 0.0, '4', '{8\mu m}', 1.0
     ldir, outdir = 'lf_data/', 'test/'
     
     #########

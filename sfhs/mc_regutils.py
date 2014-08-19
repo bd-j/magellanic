@@ -43,16 +43,17 @@ def mc_ast(cloud):
     Set up the sky coordinate system.
     """
     if cloud.lower() == 'lmc':
-        regions = utils.lmc_regions()
-        dm = 18.5
+        #regions = utils.lmc_regions()
+        nx, ny, dm = 48, 38, 18.5
         cdelt = [24./60./np.cos(np.deg2rad(-69.38333)),  24./60.]
         crpix = [ 0, 0]
         crval = [ 67.75 - cdelt[0]/2, -72.3833]
     elif cloud.lower() == 'smc':
-        regions = utils.smc_regions()
+        #regions = utils.smc_regions()
+        nx, ny, dm = 20, 23, 18.9
         #the minimum ra in deg of the 'A' corner
         crval = [6.25, -74.95]
         crpix = [0., 0.]
         #the dra in deg worked out from figure 3 of H & Z
         cdelt = [0.5/11 * 15., 12./60.]
-    return crpix, crval, cdelt, regions
+    return crpix, crval, cdelt, [nx, ny]#, regions
