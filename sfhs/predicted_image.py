@@ -7,8 +7,8 @@ import astropy.io.fits as pyfits
 import fsps
 
 import regionsed
-import mc_regutils as regutils
-import sfhutils as utils
+import mcutils as utils
+from sfhutils import read_lfs
 
 def main():
     cloud, filters = 'smc', ['galex_NUV', 'spitzer_irac_ch1', 'spitzer_irac_ch4', 'spitzer_mips_24']
@@ -40,7 +40,7 @@ def main():
 
     # LFs
     try:
-        lf_bases = [utils.read_lfs(f) for f in lffiles]
+        lf_bases = [read_lfs(f) for f in lffiles]
         #zero out select ages
         for j, base in enumerate(lf_bases):
             blank = base['ssp_ages'] <= min_tpagb_age
@@ -66,7 +66,7 @@ def main():
     im = np.zeros([ len(filters), nx, ny])
     agb = np.zeros([ len(bins), nx, ny])
     for i, n in enumerate(name):
-        x, y = regutils.regname_to_xy(n, cloud=cloud)
+        x, y = utils.regname_to_xy(n, cloud=cloud)
         agb[:, x, y] = (lfs[i, :, None] / np.size(x))
         im[:, x, y] = (10**(-0.4 * mags[i,:, None])/ np.size(x))
 

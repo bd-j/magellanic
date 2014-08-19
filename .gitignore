@@ -6,3 +6,7 @@
 presentations
 *pyc
 *~
+starfit/plots/galex_fov/*png
+*/test*
+*/tmp*
+sfhs/lf_data/*png

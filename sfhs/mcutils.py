@@ -1,5 +1,5 @@
 import numpy as np
-import sfhutils as utils
+from hzutils import *
 
 def xy_to_regname(x,y, cloud='smc'):
     """
