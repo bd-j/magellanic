@@ -1,22 +1,24 @@
-#sooooo inefficient
-import sys
+import sys, pickle
 import numpy as np
 import matplotlib.pyplot as pl
-import pickle
+
 import astropy.io.fits as pyfits
 import fsps
+from sedpy import observate
 
-import regionsed
-import mcutils as utils
 from sfhutils import read_lfs
+import regionsed as rsed
+import mcutils as utils
+
 
 def main():
+    #Run parameters
     cloud, filters = 'smc', ['galex_NUV', 'spitzer_irac_ch1', 'spitzer_irac_ch4', 'spitzer_mips_24']
     min_tpagb_age, lf_band, wave, agb_dust = 0.0, '4', '{8\mu m}', 1.0
     ldir, outdir = 'lf_data/', 'test/'
     
     #########
-    # Initialize the import objects (SPS, SFHs, LFs)
+    # Initialize the ingredients (SPS, SFHs, LFs)
     #########
     # SPS
     sps = fsps.StellarPopulation(add_agb_dust_model = True)
@@ -24,20 +26,24 @@ def main():
     dust = ['nodust', 'agbdust']
     sps.params['imf_type'] = 0.0
 
+    filterlist = observate.load_filters(filters)
+    
     # SFHs
     if cloud.lower() == 'lmc':
         regions = utils.lmc_regions()
         nx, ny, dm = 48, 38, 18.5
         zlist = [7, 11, 13, 16]
-        lffiles = ['{0}z{1:02.0f}_tau{2:02.0f}_vega_irac{3}_lf.txt'.format(ldir, z, agb_dust*10, lf_band) for z in zlist]
     elif cloud.lower() == 'smc':
         regions = utils.smc_regions()
         nx, ny, dm = 20, 23, 18.9
         zlist = [7, 13, 16]
-        lffiles = ['{0}z{1:02.0f}_tau{2:02.0f}_vega_irac{3}_lf.txt'.format(ldir, z, agb_dust*10, lf_band) for z in zlist]
     else:
         print('do not understand your MC designation')
-
+        
+    fstring = '{0}z{1:02.0f}_tau{2:02.0f}_vega_irac{3}_lf.txt'
+    lffiles = [fstring.format(ldir, z, agb_dust*10, lf_band) for z in zlist]
+    rheader = regions.pop('header') #dump the header info from the reg. dict
+    
     # LFs
     try:
         lf_bases = [read_lfs(f) for f in lffiles]
@@ -49,26 +55,24 @@ def main():
 
     except(NameError):
         lf_bases = None
-
-    ###############
-    # Main piece of code to do all the SFH integrations
-    ###############
-
-    dat = regionsed.regionsed(regions, sps, lf_bases = lf_bases, filters = filters,)
-    locs, name, mags, lfs = dat
-    bins = regionsed.lbins
-    ind_lmax = np.searchsorted(bins, -8.5) -1
-
+    
     #############
-    # Build output images and LF cubes
+    # Loop over each region, do SFH integrations, filter convolutions
+    # and populate output images and LF cubes
     ############
-
-    im = np.zeros([ len(filters), nx, ny])
-    agb = np.zeros([ len(bins), nx, ny])
-    for i, n in enumerate(name):
+    
+    im = np.zeros([ len(filters), nx, ny]) #flux in each band in each region
+    bins = rsed.lbins
+    agb = np.zeros([ len(bins), nx, ny]) #cumulative LF in each region
+    for n, dat in regions.iteritems():
+        spec, lf, wave = rsed.one_region_sed(dat['sfhs'], dat['zmet'],
+                                             sps, lf_bases=lf_bases)
+        mags = observate.getSED(wave, spec * rsed.to_cgs,
+                                filterlist = filterlist)
+        maggies = 10**(-0.4 * np.atleast_1d(mags))
         x, y = utils.regname_to_xy(n, cloud=cloud)
-        agb[:, x, y] = (lfs[i, :, None] / np.size(x))
-        im[:, x, y] = (10**(-0.4 * mags[i,:, None])/ np.size(x))
+        agb[:, x, y] = lf[:, None] / np.size(x)
+        im[:, x, y] = maggies[:, None]/ np.size(x)
 
     #############
     # Write output

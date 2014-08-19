@@ -8,46 +8,10 @@ from scipy.interpolate import interp1d
 
 #maggies_to_cgs = 10**(-0.4*(2.406 + 5*np.log10([f.wave_effective for f in filterlist])))
 lbins = np.arange(-20, 1, 0.025)
-    
-def regionsed(regions, sps, filters = ['galex_NUV'], lf_bases = None):
-    """
-    Given a cloud name (lmc | smc) and a filter, determine the
-    broadband flux of each region in that cloud based on the SFHs of
-    Harris & Zaritsky 2004 or 2009.  The sfhs are given separately for
-    each metallicity; we treat each metallicity independently and sum
-    the resulting spectra before determining the broadband flux.
-    """
-    header = regions.pop('header', None) #dump the header
-    
-    sps.params['sfh'] = 0 #ssp
-    sps.params['imf_type'] = 0 #salpeter
-    filterlist = observate.load_filters(filters)
+to_cgs = bsp.to_cgs
 
-    #set up output
-    try:
-        nb = len(lbins)
-    except:
-        nb = 1
-    regname, alllocs = [], []
-    allmags = np.zeros([len(regions), len(filterlist)])
-    all_lfs = np.zeros([len(regions), nb])
-            
-    #loop over regions
-    for j, (k, data) in enumerate(regions.iteritems()):
-        spec, lf, wave = one_region(data['sfhs'], data['zmet'],
-                                    sps, lf_bases = lf_bases)
 
-        #project filters
-        mags = observate.getSED(wave, spec * bsp.to_cgs, filterlist = filterlist)
-        mags = np.atleast_1d(mags)
-        allmags[j,:] = mags
-        all_lfs[j,:] = lf
-        regname.append(k)
-        alllocs += [data['loc'].strip()]
-        
-    return alllocs, regname, allmags, all_lfs
-
-def one_region(sfhs, zmet, sps, t_lookback = 0, lf_bases = None):
+def one_region_sed(sfhs, zmet, sps, t_lookback = 0, lf_bases = None):
     """
     Get the spectrum and AGB LF of one region, given SFHs for each
     metallicity, a stellar population object, and lf_basis
@@ -91,3 +55,42 @@ def one_region(sfhs, zmet, sps, t_lookback = 0, lf_bases = None):
 #            lf += lf8(lf_basis['bins'])[0,:]
             lf += lf8(lbins)[0,:]
     return spec, lf, wave
+
+
+def all_region_sed(regions, sps, filters = ['galex_NUV'], lf_bases = None):
+    """
+    Given a cloud name (lmc | smc) and a filter, determine the
+    broadband flux of each region in that cloud based on the SFHs of
+    Harris & Zaritsky 2004 or 2009.  The sfhs are given separately for
+    each metallicity; we treat each metallicity independently and sum
+    the resulting spectra before determining the broadband flux.
+    """
+    header = regions.pop('header', None) #dump the header
+    
+    sps.params['sfh'] = 0 #ssp
+    sps.params['imf_type'] = 0 #salpeter
+    filterlist = observate.load_filters(filters)
+
+    #set up output
+    try:
+        nb = len(lbins)
+    except:
+        nb = 1
+    regname, alllocs = [], []
+    allmags = np.zeros([len(regions), len(filterlist)])
+    all_lfs = np.zeros([len(regions), nb])
+            
+    #loop over regions
+    for j, (k, data) in enumerate(regions.iteritems()):
+        spec, lf, wave = one_region_sed(data['sfhs'], data['zmet'],
+                                        sps, lf_bases = lf_bases)
+
+        #project filters
+        mags = observate.getSED(wave, spec * bsp.to_cgs, filterlist = filterlist)
+        mags = np.atleast_1d(mags)
+        allmags[j,:] = mags
+        all_lfs[j,:] = lf
+        regname.append(k)
+        alllocs += [data['loc'].strip()]
+        
+    return alllocs, regname, allmags, all_lfs
