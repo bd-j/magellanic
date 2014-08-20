@@ -11,10 +11,14 @@ import regionsed as rsed
 import mcutils as utils
 
 
-def main():
+wlengths = {'2': '{4.5\mu m}',
+            '4': '{8\mu m}'}
+
+def main(cloud, agb_dust, lf_band):
     #Run parameters
-    cloud, filters = 'lmc', ['galex_NUV', 'spitzer_irac_ch1', 'spitzer_irac_ch4', 'spitzer_mips_24']
-    min_tpagb_age, lf_band, wave, agb_dust = 0.0, '2', '{4.5\mu m}', 1.0
+    filters = ['galex_NUV', 'spitzer_irac_ch1', 'spitzer_irac_ch4', 'spitzer_mips_24']
+    min_tpagb_age = 0.0
+    wave = wlengths[lf_band]
     ldir, outdir = 'lf_data/', 'results_predicted/'
     
     #########
@@ -142,4 +146,8 @@ def plot_lf(base, wave, lffile):
 
 
 if __name__ == '__main__':
-    main()
+    cloud = 'smc'
+#    for agb_dust in [0.5, 1.0]:
+#    for band in ['2', '4']:
+    #main(cloud, 1.0, '4')
+    main(cloud, 0.5, '2')

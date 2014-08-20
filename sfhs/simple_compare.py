@@ -16,7 +16,7 @@ lmccols = {'RA': 'RA',
            'IRAC4': 'IRAC4',
            'IRAC2': 'IRAC2',
            'STARTYPE': 'FLAG',
-           'agb_codes': ['C', 'O', 'X', 'aO/C', 'aO/O', 'RS']
+           'agb_codes': ['C', 'O', 'X', 'aO/C', 'aO/O', 'RS-C', 'RS-O', 'RS-X', 'RS-a']
            }
 
 rdir = '/Users/bjohnson/Projects/magellanic/sfhs/results_predicted/'
@@ -26,8 +26,10 @@ def select(catalog, coldict, region, codes=None):
     x, y = catalog[coldict['RA']], catalog[coldict['DEC']]
     sel = region.contains(x, y)
     if codes is not None:
-        sel = sel & (np.in1d(catalog[coldict['STARTYPE']], np.array(codes)))
-        
+        typesel = False
+        for c in codes:
+            typesel |= (catalog[coldict['STARTYPE']] == c)
+        sel = sel & typesel
     return catalog[sel]
 
     
@@ -73,17 +75,19 @@ def plot_clf(obs_clf, pred_clf, cloud, band, agb_dust=1.0):
     ax.plot(obs_clf[0], obs_clf[1], color = 'red',
             label = 'SAGE observed AGBs')
     ax.plot(pred_clf[0] + dm, pred_clf[1], color = 'blue',
-            label = r'Predicted AGBs, $\tau={0:3.1f}$'.format(agb_dust))
+            label = r'Predicted AGBs, $\tau_{{agb}}={0:3.1f}$'.format(agb_dust))
     ax.set_yscale('log')
     ax.set_title('{0} AGBs @ {1}'.format(cloud.upper(), band))
     ax.set_xlabel('magnitude ({0}, apparent, Vega)'.format(band))
     ax.set_ylabel(r'$N(<m)$')
+    ax.set_xlim(4,14)
+    ax.set_ylim(1, 1e5)
     ax.legend(loc =0)
     return fig, ax
     
 if __name__ == '__main__':
 
-    cloud, agb_dust = 'smc', 1.0
+    cloud, agb_dust = 'lmc', 0.5
     bands = ['IRAC2', 'IRAC4']
     # Get the observed CLFs
     defstring = cloud_corners(cloud)
@@ -101,4 +105,5 @@ if __name__ == '__main__':
         agb_cube = pickle.load(f)
         f.close()
         pred_clfs += [(agb_cube['mag_bins'], agb_cube['agb_clf_cube'].sum(-1).sum(-1))]
-        fig, ax = plot_clfs(obs_clfs[i], pred_clfs[i], cloud, bands[i], agb_dust=agb_dust)
+        fig, ax = plot_clf(obs_clfs[i], pred_clfs[i], cloud, bands[i], agb_dust=agb_dust)
+        fig.savefig('results_compare/clf.{0}.{1}.tau{2:02.0f}.png'.format(cloud, bands[i].lower(), agb_dust*10))
