@@ -84,10 +84,18 @@ def plot_clf(obs_clf, pred_clf, cloud, band, agb_dust=1.0):
     ax.set_ylim(1, 1e5)
     ax.legend(loc =0)
     return fig, ax
+
+def write_clf(wclf, filename, lftype):
+    out = open(filename,'w')
+    out.write('{0}\n mag  N<m\n'.format(lftype))
+    for m,n in zip(wclf[0], wclf[1]):
+        out.write('{0}   {1}\n'.format(m,n))
+    out.close()
     
+
 if __name__ == '__main__':
 
-    cloud, agb_dust = 'lmc', 0.5
+    cloud, agb_dust = 'smc', 0.5
     bands = ['IRAC2', 'IRAC4']
     # Get the observed CLFs
     defstring = cloud_corners(cloud)
@@ -105,5 +113,12 @@ if __name__ == '__main__':
         agb_cube = pickle.load(f)
         f.close()
         pred_clfs += [(agb_cube['mag_bins'], agb_cube['agb_clf_cube'].sum(-1).sum(-1))]
+        
         fig, ax = plot_clf(obs_clfs[i], pred_clfs[i], cloud, bands[i], agb_dust=agb_dust)
-        fig.savefig('results_compare/clf.{0}.{1}.tau{2:02.0f}.png'.format(cloud, bands[i].lower(), agb_dust*10))
+        fstring = 'results_compare/clf.{0}.{1}.tau{2:02.0f}'
+        values = [cloud, bands[i].lower(), agb_dust*10]
+        fig.savefig(fstring.format(*values)+'.png')
+        
+        write_clf(pred_clfs[i], fstring.format(*values)+'.dat', 'Predicted')
+        fstring = 'results_compare/obs_clf.{0}.{1}'
+        write_clf(obs_clfs[i], fstring.format(*values[0:2]), 'Observed')
