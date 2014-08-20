@@ -146,8 +146,9 @@ def plot_lf(base, wave, lffile):
 
 
 if __name__ == '__main__':
-    cloud = 'smc'
-#    for agb_dust in [0.5, 1.0]:
-#    for band in ['2', '4']:
-    #main(cloud, 1.0, '4')
-    main(cloud, 0.5, '2')
+    for cloud in ['smc', 'lmc']:
+        for agb_dust in [0.5, 1.0]:
+            for band in ['2', '4']:
+                main(cloud, agb_dust, band)
+        #main(cloud, 1.0, '4')
+        #main(cloud, 0.5, '2')

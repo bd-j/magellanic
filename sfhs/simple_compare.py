@@ -95,7 +95,7 @@ def write_clf(wclf, filename, lftype):
 
 if __name__ == '__main__':
 
-    cloud, agb_dust = 'smc', 0.5
+    cloud, agb_dust = 'lmc', 0.5
     bands = ['IRAC2', 'IRAC4']
     # Get the observed CLFs
     defstring = cloud_corners(cloud)
@@ -118,7 +118,8 @@ if __name__ == '__main__':
         fstring = 'results_compare/clf.{0}.{1}.tau{2:02.0f}'
         values = [cloud, bands[i].lower(), agb_dust*10]
         fig.savefig(fstring.format(*values)+'.png')
+        pl.close(fig)
         
         write_clf(pred_clfs[i], fstring.format(*values)+'.dat', 'Predicted')
         fstring = 'results_compare/obs_clf.{0}.{1}'
-        write_clf(obs_clfs[i], fstring.format(*values[0:2]), 'Observed')
+        write_clf(obs_clfs[i], fstring.format(*values[0:2])+'.dat', 'Observed')
