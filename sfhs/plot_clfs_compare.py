@@ -3,12 +3,12 @@ import numpy as np
 
 clouds =['lmc', 'smc']
 dmods = [18.5, 18.9]
-isocs = ['MG08', 'CG10','N2']
+isocs = ['MG08', 'CG10','N2', 'N2_test']
 tau_agb = [1.0]
 bands = ['irac2','irac4']
 rdir = 'results_compare/'
 
-icolors = {'MG08': 'blue', 'CG10': 'green', 'N2':'orange'}
+icolors = {'MG08': 'blue', 'CG10': 'green', 'N2':'orange', 'N2_test':'purple'}
 
 def readclf(filename):
     f = open(filename, 'r')

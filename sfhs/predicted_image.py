@@ -44,7 +44,7 @@ def main(cloud, agb_dust, lf_band):
     else:
         print('do not understand your MC designation')
         
-    fstring = '{0}z{1:02.0f}_tau{2:02.0f}_irac{3}_n2_lf.txt'
+    fstring = '{0}z{1:02.0f}_tau{2:02.0f}_irac{3}_n2_test_lf.txt'
     lffiles = [fstring.format(ldir, z, agb_dust*10, lf_band) for z in zlist]
     rheader = regions.pop('header') #dump the header info from the reg. dict
     
