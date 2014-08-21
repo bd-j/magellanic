@@ -18,7 +18,6 @@ def main(cloud, agb_dust, lf_band):
     #Run parameters
     filters = ['galex_NUV', 'spitzer_irac_ch1', 'spitzer_irac_ch4', 'spitzer_mips_24']
     min_tpagb_age = 0.0
-    wave = wlengths[lf_band]
     ldir, outdir = 'lf_data/', 'results_predicted/'
     
     #########
@@ -50,17 +49,17 @@ def main(cloud, agb_dust, lf_band):
     rheader = regions.pop('header') #dump the header info from the reg. dict
     
     # LFs
-    try:
-        lf_bases = [read_lfs(f) for f in lffiles]
-        #zero out select ages
-        for j, base in enumerate(lf_bases):
-            blank = base['ssp_ages'] <= min_tpagb_age
-            base['lf'][blank,:] = 0
-            plot_lf(base, wave, lffiles[j])
-
-    except(NameError):
-        lf_bases = None
     
+    lf_bases = [read_lfs(f) for f in lffiles]
+    #zero out select ages
+    for j, base in enumerate(lf_bases):
+        blank = base['ssp_ages'] <= min_tpagb_age
+        base['lf'][blank,:] = 0
+        plot_lf(base, wlengths[lf_band], lffiles[j])
+
+    #except(NameError):
+    #    lf_bases = None
+    print(lffiles)
     #############
     # Loop over each region, do SFH integrations, filter convolutions
     # and populate output images and LF cubes
@@ -99,6 +98,7 @@ def main(cloud, agb_dust, lf_band):
     out.close()
 
     # Plot the total LF
+    wave = wlengths[lf_band]
     fig, ax = pl.subplots(1,1)
     lf_tot = agb.sum(-1).sum(-1)
     ax.plot(bins + dm, lf_tot)
@@ -107,7 +107,8 @@ def main(cloud, agb_dust, lf_band):
     ax.set_title(cloud.upper())
     ax.set_yscale('log')
     fig.savefig('{0}total_agb_clf.{1}.tau{2:02.0f}.irac{3}.png'.format(outdir, cloud.lower(), agb_dust*10, lf_band))
-
+    pl.close(fig)
+    
 def write_image(im, cloud, filtname, outdir='./', agb_dust=1.0):
     """
     Write out images as fits and jpg

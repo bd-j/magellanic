@@ -95,7 +95,7 @@ def write_clf(wclf, filename, lftype):
 
 if __name__ == '__main__':
 
-    cloud, agb_dust = 'lmc', 0.5
+    cloud, agb_dust = 'smc', 1.0
     bands = ['IRAC2', 'IRAC4']
     # Get the observed CLFs
     defstring = cloud_corners(cloud)
