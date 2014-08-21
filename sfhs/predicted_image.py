@@ -45,7 +45,7 @@ def main(cloud, agb_dust, lf_band):
     else:
         print('do not understand your MC designation')
         
-    fstring = '{0}z{1:02.0f}_tau{2:02.0f}_vega_irac{3}_lf.txt'
+    fstring = '{0}z{1:02.0f}_tau{2:02.0f}_irac{3}_n2_lf.txt'
     lffiles = [fstring.format(ldir, z, agb_dust*10, lf_band) for z in zlist]
     rheader = regions.pop('header') #dump the header info from the reg. dict
     
@@ -147,7 +147,7 @@ def plot_lf(base, wave, lffile):
 
 if __name__ == '__main__':
     for cloud in ['smc', 'lmc']:
-        for agb_dust in [0.5, 1.0]:
+        for agb_dust in [1.0]:
             for band in ['2', '4']:
                 main(cloud, agb_dust, band)
         #main(cloud, 1.0, '4')
