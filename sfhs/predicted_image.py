@@ -14,7 +14,7 @@ import mcutils as utils
 wlengths = {'2': '{4.5\mu m}',
             '4': '{8\mu m}'}
 
-def main(cloud, agb_dust, lf_band):
+def main(cloud, agb_dust, lf_band, basti=False):
     #Run parameters
     filters = ['galex_NUV', 'spitzer_irac_ch1', 'spitzer_irac_ch4', 'spitzer_mips_24']
     min_tpagb_age = 0.0
@@ -37,14 +37,21 @@ def main(cloud, agb_dust, lf_band):
         regions = utils.lmc_regions()
         nx, ny, dm = 48, 38, 18.5
         zlist = [7, 11, 13, 16]
+        if basti:
+            zlist = [3,4,5,6]
     elif cloud.lower() == 'smc':
         regions = utils.smc_regions()
         nx, ny, dm = 20, 23, 18.9
         zlist = [7, 13, 16]
+        if basti:
+            zlist = [3,5,6]
+
     else:
         print('do not understand your MC designation')
         
     fstring = '{0}z{1:02.0f}_tau{2:02.0f}_irac{3}_n2_test_lf.txt'
+    if basti:
+        fstring = '{0}z{1:02.0f}_tau{2:02.0f}_basti_vega_n2_irac{3}_SSP.txt'
     lffiles = [fstring.format(ldir, z, agb_dust*10, lf_band) for z in zlist]
     rheader = regions.pop('header') #dump the header info from the reg. dict
     
@@ -150,6 +157,6 @@ if __name__ == '__main__':
     for cloud in ['smc', 'lmc']:
         for agb_dust in [1.0]:
             for band in ['2', '4']:
-                main(cloud, agb_dust, band)
+                main(cloud, agb_dust, band, basti=True)
         #main(cloud, 1.0, '4')
         #main(cloud, 0.5, '2')
