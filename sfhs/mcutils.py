@@ -1,8 +1,9 @@
+import os
 import numpy as np
 
 mcdir, f = os.path.split(__file__)
-lmcfile = mcdir+'/sfh_data/lmc_sfh.dat'
-smcfile = mcdir+'/sfh_data/smc_sfh.dat'
+lmcfile = os.path.join(mcdir,'sfh_data','lmc_sfh.dat')
+smcfile = os.path.join(mcdir,'sfh_data','smc_sfh.dat')
 
 def xy_to_regname(x,y, cloud='smc'):
     """

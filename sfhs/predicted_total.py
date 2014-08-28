@@ -1,4 +1,4 @@
-import sys, pickle
+import sys, pickle, copy
 import numpy as np
 import matplotlib.pyplot as pl
 
@@ -13,7 +13,7 @@ import mcutils as utils
 wlengths = {'2': '{4.5\mu m}',
             '4': '{8\mu m}'}
 
-def total_cloud_data(cloud, agb_dust, lf_bands, out='total_data.p',
+def total_cloud_data(cloud, out='total_data.p', basti=False,
                      lfstrings=['z{0:02.0f}_tau10_vega_irac4_lf.txt']):
     
     #Run parameters
@@ -51,6 +51,7 @@ def total_cloud_data(cloud, agb_dust, lf_bands, out='total_data.p',
     # LFs
     lf_bases = []
     for lfstring in lfstrings:
+        print(lfstring)
         lffiles = [lfstring.format(z) for z in zlist]
         lf_bases += [[read_lfs(f) for f in lffiles]]
     
@@ -63,17 +64,17 @@ def total_cloud_data(cloud, agb_dust, lf_bands, out='total_data.p',
     for n, dat in regions.iteritems():
         total_sfhs = add_sfhs(total_sfhs, dat['sfhs'])
         total_zmet = dat['zmet']
-
-    lfs = []
-    #loop over the differnt bands (and whatever else) for the LFs
-    for lf_base in lf_bases:
-        spec, lf, wave = rsed.one_region_sed(total_sfhs, total_zmet,
+    
+    lfs, maggies = [], []
+    #loop over the different bands (and whatever else) for the LFs
+    for i,lf_base in enumerate(lf_bases):
+        spec, lf, wave = rsed.one_region_sed(copy.deepcopy(total_sfhs), total_zmet,
                                              sps, lf_bases=lf_base)
         lfs += [lf]
         
     mags = observate.getSED(wave, spec * rsed.to_cgs,
                             filterlist = filterlist)
-    maggies = 10**(-0.4 * np.atleast_1d(mags))
+    maggies += [10**(-0.4 * np.atleast_1d(mags))]
     
     #############
     # Write output
@@ -81,14 +82,13 @@ def total_cloud_data(cloud, agb_dust, lf_bands, out='total_data.p',
     total_values = {}
     total_values['agb_clfs'] = lfs
     total_values['clf_mags'] = bins
-    total_values['clf_bands'] = lf_bands
     total_values['sed_ab_maggies'] = maggies
     total_values['sed_filters'] = filters
     total_values['lffiles'] = lfstrings
     out = open(out, "wb")
     pickle.dump(total_values, out)
     out.close()
-    return total_values
+    return total_values, total_sfhs
 
 def add_sfhs(sfhs1, sfhs2):
     """
@@ -97,11 +97,11 @@ def add_sfhs(sfhs1, sfhs2):
     order of metallicities, and the same time binning.
     """
     if sfhs1 is None:
-        return sfhs2.copy()
+        return copy.deepcopy(sfhs2)
     elif sfhs2 is None:
-        return sfhs1.copy()
+        return copy.deepcopy(sfhs1)
     else:
-        out = sfhs1.copy()
+        out = copy.deepcopy(sfhs1)
         for s1, s2 in zip(out, sfhs2):
             s1['sfr'] += s2['sfr']
         return out
@@ -129,11 +129,15 @@ def plot_lf(base, wave, lffile):
 
 if __name__ == '__main__':
 
-    ldir, outdir = 'lf_data/'
-    out = 'results_predicted/padova.p'
-    st = '{0}z{{0:02.0f}}_tau{1}_vega_irac{2}_lf.txt'
+    ldir = 'lf_data/'
+    
+    lfst = '{0}z{{0:02.0f}}_tau{1:2.0f}_vega_irac{2}_lf.txt'
+    outst = 'results_predicted/{0}_tau10_cg10.p'
     for cloud in ['smc', 'lmc']:
+        out = outst.format(cloud)
+        lfstrings = []
         for agb_dust in [1.0]:
             for band in ['2','4']:
-                lfstrings += [st.format(ldir, agb_dust*10.0, band)]
-        dat = total_cloud_data(cloud, lfstrings, out)
+                lfstrings += [lfst.format(ldir, agb_dust*10.0, band)]
+        print(cloud)
+        dat = total_cloud_data(cloud, lfstrings=lfstrings, out=out)
