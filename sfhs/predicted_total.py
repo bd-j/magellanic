@@ -159,18 +159,20 @@ if __name__ == '__main__':
     filters = None
     
     ldir, cdir = 'lf_data/', 'composite_lfs/'
+    outst = '{0}_cg10.p'
+    # total_cloud_data will loop over the appropriate (for the
+    # isochrone) metallicities for a given lfst filename template
     lfst = '{0}z{{0:02.0f}}_tau{1:2.0f}_vega_irac{2}_lf.txt'
-    outst = 'results_predicted/{0}_tau10_cg10.p'
     basti = False
     
+    
     for cloud in ['smc', 'lmc']:
-        out = outst.format(cloud)
         lfstrings = []
         for agb_dust in [1.0]:
             for band in ['2','4']:
                 lfstrings += [lfst.format(ldir, agb_dust*10.0, band)]
         print(cloud)
-        dat = total_cloud_data(cloud, lfstrings=lfstrings, out=out,
+        dat = total_cloud_data(cloud, lfstrings=lfstrings, out=outst.format(cloud),
                                    filterlist=filters, basti=basti)
         write_composite_clfs(dat[0], ldir, '{0}cclf_{1}_'.format(cdir, cloud))
 

@@ -1,45 +1,44 @@
 Installation
 =====
 
-1. Install FSPS.
-   a. `svn checkout http://fsps.googlecode.com/svn/trunk/ fsps`
-   b. `export SPS_HOME="/Path/to/fsps/directory/"`
-   c. `cd fsps/src/`
-   d. `make all`
-   e. smoke test by running `./simple.exe`
+Get the Magellanic code
+  1. ``git clone https://github.com/bd-j/magellanic.git``
+  
+You will only be concerned with stuff in the ``sfhs/`` subdirectory of the
+magellanic repo.  The LF files go in the ``lf_data/`` subdirectory.  You
+should make a ``sfhs/composite_lfs/`` directory.  Then, the key module
+is ``predicted_total.py``.  This generates composite LFs optionally
+for multiple bands and agb_dust parameters, for both clouds.  The
+important bit is to modify the ``lfst``, ``outst``, and ``basti``
+variables in the ``__main__`` branch to correspond to the LF files you
+want to use, output name, and whether the ischrones are Basti or not.
+Then ``python predicted_total.py`` should put some lf text files in
+the ``composite_lfs`` directory .
 
-2. Install python-FSPS (specifically my fork of it, which works with
-   the newest FSPS version, R140)
-   a. `git clone https://github.com/bd-j/python-fsps.git`
-   b. `cd python-fsps`
-   c. `[sudo] python setup.py build_fsps`
-   d. `[sudo] python setup.py develop` (puts a link to this directory
-      in your default site-packages directory so import can find it)
 
-3. Install sedpy.  Sedpy does all the filter projections and has
+Install FSPS.
+ 1. ``svn checkout http://fsps.googlecode.com/svn/trunk/ fsps``
+ 2. ``export SPS_HOME="/Path/to/fsps/directory/"``
+ 3. ``cd fsps/src/``
+ 4. ``make all``
+ 5. smoke test by running ``./simple.exe``
+
+Install python-FSPS 
+ 1. ``pip install fsps``
+ 2. You'll probably have to add your revision of FSPS to the accepted
+    list.  Alternatively, just comment out the lines in
+    ``__init__.py`` that start
+    ``if not accepted: raise ImportError(Your FSPS revision, {0}, is not known to work with``
+ 
+ 3. ``python setup.py install`` in the python-fsps directory
+
+
+Optional. Install sedpy.  Sedpy does all the filter projections and has
    attenuation functions
-   a. `git clone https://github.com/bd-j/sedpy.git`
-   b. `cd sedpy`
-   c. `[sudo] python setup.py develop`
-   d. copy over any filters you want to use that aren't already in
+  1. ``git clone https://github.com/bd-j/sedpy.git``
+  2. ``cd sedpy``
+  3. ``[sudo] python setup.py develop``
+  4. copy over any filters you want to use that aren't already in
       sedpy/data/filters. The filter file format is the same as
       k_correct, so you can nick any of those.
    
-4. Download the relevant `scombine` modules to your working directory
-   a. You will need `bursty_sps.py` and `sfh_utils.py` (available from
-      https://github.com/bd-j/scombine , but I included them in this
-      tarball for convenience)
-
-5. Final touches.
-   a. Downlaod the Harris and Zaritsky SFH files from
-      http://djuma.as.arizona.edu/~dennis/mcsurvey/Data_Products.html
-      or use the provided files.
-   b. change the path to the Harris and Zaritsky SFH files in
-   `hzutils.py`, choose your cloud and filters in
-   `predicted_image.py`, and run that script.
-
-6. Profit!  last step will produce pngs, but if you want the images,
-   you can write the `im` varibale as a fits image.  The WCS is a
-   little uncertain, the Harris and Zaritsky files given a region
-   coordinate, but I'm not sure if that's for the center of the region
-   or what.
