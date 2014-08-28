@@ -2,7 +2,7 @@
 #  to predicted fluxes.
 
 import numpy as np
-import bursty_sfh as bsp
+import sputils as bsp
 from scipy.interpolate import interp1d
 
 lbins = np.arange(-20, 1, 0.025)
@@ -42,7 +42,7 @@ def one_region_sed(sfhs, zmet, sps, t_lookback = 0, lf_bases = None):
 
         # Get the intrinsic spectrum for this metallicity SFH
         #  and add to the total spectrum
-        wave, zspec, aw = bsp.bursty_sps(t_lookback, lt, sfr, sps, av = None, dav = None)
+        wave, zspec, aw = bsp.bursty_sps(t_lookback, lt, sfr, sps)
         spec += zspec[0,:]
         mstar += mtot
         # Get the agb LF from this mettalicity interpolate onto

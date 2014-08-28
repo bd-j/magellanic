@@ -6,15 +6,14 @@ import astropy.io.fits as pyfits
 import fsps
 from sedpy import observate
 
-from sfhutils import read_lfs
+from sputils import read_lfs
 import regionsed as rsed
 import mcutils as utils
-
 
 wlengths = {'2': '{4.5\mu m}',
             '4': '{8\mu m}'}
 
-def total_lf(cloud, agb_dust, lf_bands,
+def total_lf(cloud, agb_dust, lf_bands, out='total_data.p',
              lfstrings=['z{0:02.0f}_tau10_vega_irac4_lf.txt']):
     
     #Run parameters
@@ -31,7 +30,6 @@ def total_lf(cloud, agb_dust, lf_bands,
     sps.params['agb_dust'] = agb_dust
     dust = ['nodust', 'agbdust']
     sps.params['imf_type'] = 0.0 #salpeter
-
     filterlist = observate.load_filters(filters)
     
     # SFHs
@@ -41,17 +39,14 @@ def total_lf(cloud, agb_dust, lf_bands,
         zlist = [7, 11, 13, 16]
         if basti:
             zlist = [3,4,5,6]
-
     elif cloud.lower() == 'smc':
         regions = utils.smc_regions()
         nx, ny, dm = 20, 23, 18.9
         zlist = [7, 13, 16]
         if basti:
             zlist = [3,5,6]
-
     else:
         print('do not understand your MC designation')
-        
     rheader = regions.pop('header') #dump the header info from the reg. dict        
     
     # LFs
@@ -67,7 +62,7 @@ def total_lf(cloud, agb_dust, lf_bands,
     total_sfhs = None
     bins = rsed.lbins
     for n, dat in regions.iteritems():
-        total_sfhs = accumulate_sfhs(total_sfhs, dat['sfhs'])
+        total_sfhs = add_sfhs(total_sfhs, dat['sfhs'])
         total_zmet = dat['zmet']
 
     lfs = []
@@ -84,30 +79,33 @@ def total_lf(cloud, agb_dust, lf_bands,
     #############
     # Write output
     ############
-    
     total_values = {}
     total_values['agb_clfs'] = lfs
     total_values['clf_mags'] = bins
     total_values['clf_bands'] = lf_bands
     total_values['sed_ab_maggies'] = maggies
     total_values['sed_filters'] = filters
-    out = open("{0}total_data.{1}.tau{2:02.0f}.p".format(outdir, cloud.lower(), agb_dust*10), "wb")
+    total_values['lffiles'] = lfstrings
+    out = open(out, "wb")
     pickle.dump(total_values, out)
     out.close()
     return total_values
 
-def accumulate_sfhs(total, one_set):
+def add_sfhs(sfhs1, sfhs2):
     """
     Accumulate individual sets of SFHs into a total set of SFHs.  This
     assumes that the individual SFH sets all have the same number and
     order of metallicities, and the same time binning.
     """
-    if total is None:
-        return one_set
+    if sfhs1 is None:
+        return sfhs2.copy()
+    elif sfhs2 is None:
+        return sfhs1.copy()
     else:
-        for t, o in zip(total, one_set):
-            t['sfr'] += o['sfr']
-        return total
+        out = sfhs1.copy()
+        for s1, s2 in zip(out, sfhs2):
+            s1['sfr'] += s2['sfr']
+        return out
     
 def plot_lf(base, wave, lffile):
     """
