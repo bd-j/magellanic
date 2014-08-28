@@ -4,8 +4,11 @@ import matplotlib.pyplot as pl
 
 import astropy.io.fits as pyfits
 import fsps
-from sedpy import observate
-
+try:
+    from sedpy import observate
+except:
+    #you won't be able to predict integrated magnitudes
+    pass
 from sputils import read_lfs
 import regionsed as rsed
 import mcutils as utils
@@ -14,11 +17,8 @@ wlengths = {'2': '{4.5\mu m}',
             '4': '{8\mu m}'}
 
 def total_cloud_data(cloud, out='total_data.p', basti=False,
-                     lfstrings=['z{0:02.0f}_tau10_vega_irac4_lf.txt']):
-    
-    #Run parameters
-    filters = ['galex_NUV', 'spitzer_irac_ch1',
-               'spitzer_irac_ch4', 'spitzer_mips_24']
+                     lfstrings=['z{0:02.0f}_tau10_vega_irac4_lf.txt'],
+                     filterlist = None):
     
     #########
     # Initialize the ingredients (SPS, SFHs, LFs)
@@ -29,7 +29,8 @@ def total_cloud_data(cloud, out='total_data.p', basti=False,
     sps.params['agb_dust'] = agb_dust
     dust = ['nodust', 'agbdust']
     sps.params['imf_type'] = 0.0 #salpeter
-    filterlist = observate.load_filters(filters)
+    if filterlist is not None:
+        filterlist = observate.load_filters(filterlist)
     
     # SFHs
     if cloud.lower() == 'lmc':
@@ -49,6 +50,9 @@ def total_cloud_data(cloud, out='total_data.p', basti=False,
     rheader = regions.pop('header') #dump the header info from the reg. dict        
     
     # LFs
+    # these are sored as a list of lists.  The outer list is differnt
+    # isochrones, wavelengths, agb_dusts, the inner list if different
+    # metallicities
     lf_bases = []
     for lfstring in lfstrings:
         print(lfstring)
@@ -71,10 +75,10 @@ def total_cloud_data(cloud, out='total_data.p', basti=False,
         spec, lf, wave = rsed.one_region_sed(copy.deepcopy(total_sfhs), total_zmet,
                                              sps, lf_bases=lf_base)
         lfs += [lf]
-        
-    mags = observate.getSED(wave, spec * rsed.to_cgs,
-                            filterlist = filterlist)
-    maggies += [10**(-0.4 * np.atleast_1d(mags))]
+    if filterlist is not None:
+        mags = observate.getSED(wave, spec * rsed.to_cgs,
+                                filterlist = filterlist)
+        maggies += [10**(-0.4 * np.atleast_1d(mags))]
     
     #############
     # Write output
@@ -108,7 +112,7 @@ def add_sfhs(sfhs1, sfhs2):
     
 def plot_lf(base, wave, lffile):
     """
-    Plot the interpolated input lfs to make sure they are ok
+    Plot the interpolated input lfs to make sure they are ok.
     """
     ncolors = base['lf'].shape[0]
     cm = pl.get_cmap('gist_rainbow')
@@ -127,12 +131,38 @@ def plot_lf(base, wave, lffile):
     pl.close(fig)
 
 
-if __name__ == '__main__':
+def write_clf(wclf, filename, lftype):
+    """
+    Given a 2 element list decribing the CLF, write it to `filename'.
+    """
+    out = open(filename,'w')
+    out.write('{0}\n mag  N<m\n'.format(lftype))
+    for m,n in zip(wclf[0], wclf[1]):
+        out.write('{0:.4f}   {1}\n'.format(m,n))
+    out.close()
 
-    ldir = 'lf_data/'
+def write_composite_clfs(total_values, ldir, rdir):
+    """
+    Take the 0th element output of total_cloud_data and write the
+    composite CLFs it contains to .dat files
+    """
+    dat = total_values
+    for i, lfstring in enumerate(dat['lffiles']):
+        outfile = lfstring.replace(ldir, rdir).replace('z{0:02.0f}_','').replace('.txt','.dat')
+        write_clf([dat['clf_mags'], dat['agb_clfs'][i]], outfile, lfstring)
+
+        
+if __name__ == '__main__':
     
+    filters = ['galex_NUV', 'spitzer_irac_ch1',
+               'spitzer_irac_ch4', 'spitzer_mips_24']
+    filters = None
+    
+    ldir, cdir = 'lf_data/', 'composite_lfs/'
     lfst = '{0}z{{0:02.0f}}_tau{1:2.0f}_vega_irac{2}_lf.txt'
     outst = 'results_predicted/{0}_tau10_cg10.p'
+    basti = False
+    
     for cloud in ['smc', 'lmc']:
         out = outst.format(cloud)
         lfstrings = []
@@ -140,4 +170,8 @@ if __name__ == '__main__':
             for band in ['2','4']:
                 lfstrings += [lfst.format(ldir, agb_dust*10.0, band)]
         print(cloud)
-        dat = total_cloud_data(cloud, lfstrings=lfstrings, out=out)
+        dat = total_cloud_data(cloud, lfstrings=lfstrings, out=out,
+                                   filterlist=filters, basti=basti)
+        write_composite_clfs(dat[0], ldir, '{0}cclf_{1}_'.format(cdir, cloud))
+
+        
