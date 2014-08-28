@@ -6,6 +6,8 @@ import astropy.io.fits as pyfits
 try: 
     import fsps
 except ImportError:
+    #you wont be able to predict the integrated spectrum
+    # filterlist must be set to None in calls to total_cloud_data
     sps = None
 try:
     from sedpy import observate
@@ -69,7 +71,7 @@ def total_cloud_data(cloud, out='total_data.p', basti=False,
     total_sfhs = None
     bins = rsed.lfbins
     for n, dat in regions.iteritems():
-        total_sfhs = add_sfhs(total_sfhs, dat['sfhs'])
+        total_sfhs = sum_sfhs(total_sfhs, dat['sfhs'])
         total_zmet = dat['zmet']
     
     #loop over the different bands (and whatever else) for the LFs
@@ -94,12 +96,10 @@ def total_cloud_data(cloud, out='total_data.p', basti=False,
     total_values['sed_ab_maggies'] = maggies
     total_values['sed_filters'] = filters
     total_values['lffiles'] = lfstrings
-    out = open(out, "wb")
-    pickle.dump(total_values, out)
-    out.close()
+    
     return total_values, total_sfhs
 
-def add_sfhs(sfhs1, sfhs2):
+def sum_sfhs(sfhs1, sfhs2):
     """
     Accumulate individual sets of SFHs into a total set of SFHs.  This
     assumes that the individual SFH sets all have the same number and
@@ -177,8 +177,12 @@ if __name__ == '__main__':
             for band in ['2','4']:
                 lfstrings += [lfst.format(ldir, agb_dust*10.0, band)]
         print(cloud)
-        dat = total_cloud_data(cloud, lfstrings=lfstrings, out=outst.format(cloud),
-                                   filterlist=filters, basti=basti)
+        dat = total_cloud_data(cloud, lfstrings=lfstrings, basti=basti,
+                               filterlist=filters)
+        out = open(out=outst.format(cloud), "wb")
+        pickle.dump(dat[0], out)
+        out.close()
+
         write_composite_clfs(dat[0], ldir, '{0}cclf_{1}_'.format(cdir, cloud))
 
         
