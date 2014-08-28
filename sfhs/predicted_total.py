@@ -13,13 +13,12 @@ import mcutils as utils
 wlengths = {'2': '{4.5\mu m}',
             '4': '{8\mu m}'}
 
-def total_lf(cloud, agb_dust, lf_bands, out='total_data.p',
-             lfstrings=['z{0:02.0f}_tau10_vega_irac4_lf.txt']):
+def total_cloud_data(cloud, agb_dust, lf_bands, out='total_data.p',
+                     lfstrings=['z{0:02.0f}_tau10_vega_irac4_lf.txt']):
     
     #Run parameters
-    filters = ['galex_NUV', 'spitzer_irac_ch1', 'spitzer_irac_ch4', 'spitzer_mips_24']
-    min_tpagb_age = 0.0
-    ldir, outdir = 'lf_data/', 'results_predicted/'
+    filters = ['galex_NUV', 'spitzer_irac_ch1',
+               'spitzer_irac_ch4', 'spitzer_mips_24']
     
     #########
     # Initialize the ingredients (SPS, SFHs, LFs)
@@ -129,8 +128,12 @@ def plot_lf(base, wave, lffile):
 
 
 if __name__ == '__main__':
+
+    ldir, outdir = 'lf_data/'
+    out = 'results_predicted/padova.p'
+    st = '{0}z{{0:02.0f}}_tau{1}_vega_irac{2}_lf.txt'
     for cloud in ['smc', 'lmc']:
-        for agb_dust in [0.5, 1.0]:
-                total_lf(cloud, agb_dust, ['2', '4'])
-        #main(cloud, 1.0, '4')
-        #main(cloud, 0.5, '2')
+        for agb_dust in [1.0]:
+            for band in ['2','4']:
+                lfstrings += [st.format(ldir, agb_dust*10.0, band)]
+        dat = total_cloud_data(cloud, lfstrings, out)
