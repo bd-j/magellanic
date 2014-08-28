@@ -3,10 +3,13 @@ import numpy as np
 import matplotlib.pyplot as pl
 
 import astropy.io.fits as pyfits
-import fsps
+try: 
+    import fsps
+except ImportError:
+    sps = None
 try:
     from sedpy import observate
-except:
+except ImportError:
     #you won't be able to predict integrated magnitudes
     pass
 from sputils import read_lfs
@@ -24,12 +27,12 @@ def total_cloud_data(cloud, out='total_data.p', basti=False,
     # Initialize the ingredients (SPS, SFHs, LFs)
     #########
     # SPS
-    sps = fsps.StellarPopulation(add_agb_dust_model = True)
-    sps.params['sfh'] = 0
-    sps.params['agb_dust'] = agb_dust
-    dust = ['nodust', 'agbdust']
-    sps.params['imf_type'] = 0.0 #salpeter
     if filterlist is not None:
+        sps = fsps.StellarPopulation(add_agb_dust_model = True)
+        sps.params['sfh'] = 0
+        sps.params['agb_dust'] = agb_dust
+        dust = ['nodust', 'agbdust']
+        sps.params['imf_type'] = 0.0 #salpeter
         filterlist = observate.load_filters(filterlist)
     
     # SFHs
@@ -64,21 +67,23 @@ def total_cloud_data(cloud, out='total_data.p', basti=False,
     # and populate output images and LF cubes
     ############
     total_sfhs = None
-    bins = rsed.lbins
+    bins = rsed.lfbins
     for n, dat in regions.iteritems():
         total_sfhs = add_sfhs(total_sfhs, dat['sfhs'])
         total_zmet = dat['zmet']
     
-    lfs, maggies = [], []
     #loop over the different bands (and whatever else) for the LFs
+    lfs, maggies = [], None
     for i,lf_base in enumerate(lf_bases):
-        spec, lf, wave = rsed.one_region_sed(copy.deepcopy(total_sfhs), total_zmet,
-                                             sps, lf_bases=lf_base)
+        lf = rsed.one_region_lf(copy.deepcopy(total_sfhs),
+                                total_zmet, lf_base)
         lfs += [lf]
     if filterlist is not None:
+        spec, wave = rsed.one_region_sed(copy.deepcopy(total_sfhs),
+                                         total_zmet, sps )
         mags = observate.getSED(wave, spec * rsed.to_cgs,
                                 filterlist = filterlist)
-        maggies += [10**(-0.4 * np.atleast_1d(mags))]
+        maggies = 10**(-0.4 * np.atleast_1d(mags))
     
     #############
     # Write output
@@ -154,8 +159,8 @@ def write_composite_clfs(total_values, ldir, rdir):
         
 if __name__ == '__main__':
     
-    filters = ['galex_NUV', 'spitzer_irac_ch1',
-               'spitzer_irac_ch4', 'spitzer_mips_24']
+    #filters = ['galex_NUV', 'spitzer_irac_ch1',
+    #           'spitzer_irac_ch4', 'spitzer_mips_24']
     filters = None
     
     ldir, cdir = 'lf_data/', 'composite_lfs/'

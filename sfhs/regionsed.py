@@ -5,25 +5,20 @@ import numpy as np
 import sputils as bsp
 from scipy.interpolate import interp1d
 
-lbins = np.arange(-20, 1, 0.025)
+lfbins = np.arange(-20, 1, 0.025)
 lsun, pc = 3.846e33, 3.085677581467192e18
 to_cgs = lsun/(4.0 * np.pi * (pc*10)**2 )
 
 def one_region_sed(sfhs, zmet, sps, t_lookback = 0, lf_bases = None):
     """
-    Get the spectrum and AGB LF of one region, given SFHs for each
+    Get the spectrum of one region, given SFHs for each
     metallicity, a stellar population object, and lf_basis
     """
     spec = np.zeros(sps.wavelengths.shape[0])
-    lf = 0
     mstar = 0
-    
-    nsfh = len(sfhs)
-    if lf_bases is None:
-        lf_bases = nsfh * [None]
-        
+            
     #loop over metallicities for each region
-    for i, (sfh, lf_basis) in enumerate(zip(sfhs, lf_bases)):
+    for i, sfh in enumerate(sfhs):
         #choose nearest metallicity
         zindex = np.abs(sps.zlegend - zmet[i]).argmin() + 1
         sps.params['zmet'] = np.clip(zindex, 1, 5)
@@ -45,16 +40,37 @@ def one_region_sed(sfhs, zmet, sps, t_lookback = 0, lf_bases = None):
         wave, zspec, aw = bsp.bursty_sps(t_lookback, lt, sfr, sps)
         spec += zspec[0,:]
         mstar += mtot
+    return spec, wave
+
+def one_region_lf(sfhs, zmet, lf_bases, t_lookback = 0):
+    """
+    Get the AGB LF of one region, given a list of SFHs for each
+    metallicity and a list of lf_bases for each metallicity.
+    """
+    lf = 0
+    #loop over metallicities for each region
+    for i, (sfh, lf_basis) in enumerate(zip(sfhs, lf_bases)):
+        # Put sfh in linear units, adjusting most recent time bin
+        sfh['t1'] = 10.**sfh['t1']
+        sfh['t2'] = 10.**sfh['t2']
+        sfh['sfr'][0] *=  1 - (sfh['t1'][0]/sfh['t2'][0])
+        sfh[0]['t1'] = 0.
+        mtot = ((sfh['t2'] - sfh['t1']) * sfh['sfr']).sum()
+
+        # Convert into a high resolution sfh,
+        #  with *no* intrabin sfr variations (f_burst =0)
+        lt, sfr, fb = bsp.burst_sfh(f_burst = 0., sfh = sfh,
+                                    fwhm_burst = 0.05,  contrast = 1.,
+                                    bin_res = 10.)
+
         # Get the agb LF from this mettalicity interpolate onto
         # lbins, and add to total LF
-        if lf_basis is not None:
-            bins, zlf, aw = bsp.bursty_lf(t_lookback, lt, sfr, lf_basis)
-            lf8 = interp1d(bins, zlf, bounds_error =False)
-#            lf += lf8(lf_basis['bins'])[0,:]
-            lf += lf8(lbins)[0,:]
-    return spec, lf, wave
-
-
+        bins, zlf, aw = bsp.bursty_lf(t_lookback, lt, sfr, lf_basis)
+        lf8 = interp1d(bins, zlf, bounds_error =False)
+        lf += lf8(lfbins)[0,:]
+        
+    return lf
+    
 def all_region_sed(regions, sps, filters = ['galex_NUV'], lf_bases = None):
     """
     Given a cloud name (lmc | smc) and a filter, determine the
@@ -73,7 +89,7 @@ def all_region_sed(regions, sps, filters = ['galex_NUV'], lf_bases = None):
 
     #set up output
     try:
-        nb = len(lbins)
+        nb = len(lfbins)
     except:
         nb = 1
     regname, alllocs = [], []

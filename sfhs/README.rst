@@ -30,7 +30,8 @@ Install python-FSPS
     ``__init__.py`` that start
     ``if not accepted: raise ImportError(Your FSPS revision, {0}, is not known to work with``
  
-Optional. Install sedpy.  
+Install sedpy (Optional).
+  
 Sedpy does all the filter projections and has attenuation functions.
 If you don't install it, make sure you set ``filters=None`` in the
 main branch of ``predicted_total.py``
