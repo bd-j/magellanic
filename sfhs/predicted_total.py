@@ -14,7 +14,9 @@ import mcutils as utils
 wlengths = {'2': '{4.5\mu m}',
             '4': '{8\mu m}'}
 
-def main(cloud, agb_dust, lf_bands):
+def total_lf(cloud, agb_dust, lf_bands,
+             lfstrings=['z{0:02.0f}_tau10_vega_irac4_lf.txt']):
+    
     #Run parameters
     filters = ['galex_NUV', 'spitzer_irac_ch1', 'spitzer_irac_ch4', 'spitzer_mips_24']
     min_tpagb_age = 0.0
@@ -37,25 +39,26 @@ def main(cloud, agb_dust, lf_bands):
         regions = utils.lmc_regions()
         nx, ny, dm = 48, 38, 18.5
         zlist = [7, 11, 13, 16]
+        if basti:
+            zlist = [3,4,5,6]
+
     elif cloud.lower() == 'smc':
         regions = utils.smc_regions()
         nx, ny, dm = 20, 23, 18.9
         zlist = [7, 13, 16]
+        if basti:
+            zlist = [3,5,6]
+
     else:
         print('do not understand your MC designation')
         
     rheader = regions.pop('header') #dump the header info from the reg. dict        
     
     # LFs
-    
     lf_bases = []
-    for band in lf_bands:
-        fstring = '{0}z{1:02.0f}_tau{2:02.0f}_vega_irac{3}_lf.txt'
-        lffiles = [fstring.format(ldir, z, agb_dust*10, band) for z in zlist]
-
+    for lfstring in lfstrings:
+        lffiles = [lfstring.format(z) for z in zlist]
         lf_bases += [[read_lfs(f) for f in lffiles]]
-    #zero out select ages
-
     
     #############
     # Loop over each region, do SFH integrations, filter convolutions
@@ -91,6 +94,7 @@ def main(cloud, agb_dust, lf_bands):
     out = open("{0}total_data.{1}.tau{2:02.0f}.p".format(outdir, cloud.lower(), agb_dust*10), "wb")
     pickle.dump(total_values, out)
     out.close()
+    return total_values
 
 def accumulate_sfhs(total, one_set):
     """
@@ -129,6 +133,6 @@ def plot_lf(base, wave, lffile):
 if __name__ == '__main__':
     for cloud in ['smc', 'lmc']:
         for agb_dust in [0.5, 1.0]:
-                main(cloud, agb_dust, ['2', '4'])
+                total_lf(cloud, agb_dust, ['2', '4'])
         #main(cloud, 1.0, '4')
         #main(cloud, 0.5, '2')

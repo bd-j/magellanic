@@ -3,13 +3,11 @@
 
 import numpy as np
 import bursty_sfh as bsp
-from sedpy import attenuation, observate
 from scipy.interpolate import interp1d
 
-#maggies_to_cgs = 10**(-0.4*(2.406 + 5*np.log10([f.wave_effective for f in filterlist])))
 lbins = np.arange(-20, 1, 0.025)
-to_cgs = bsp.to_cgs
-
+lsun, pc = 3.846e33, 3.085677581467192e18
+to_cgs = lsun/(4.0 * np.pi * (pc*10)**2 )
 
 def one_region_sed(sfhs, zmet, sps, t_lookback = 0, lf_bases = None):
     """
@@ -65,6 +63,8 @@ def all_region_sed(regions, sps, filters = ['galex_NUV'], lf_bases = None):
     each metallicity; we treat each metallicity independently and sum
     the resulting spectra before determining the broadband flux.
     """
+    
+    from sedpy import observate
     header = regions.pop('header', None) #dump the header
     
     sps.params['sfh'] = 0 #ssp
