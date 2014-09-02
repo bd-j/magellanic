@@ -21,7 +21,7 @@ import mcutils as utils
 wlengths = {'2': '{4.5\mu m}',
             '4': '{8\mu m}'}
 
-def total_cloud_data(cloud, out='total_data.p', basti=False,
+def total_cloud_data(cloud, basti=False,
                      lfstrings=['z{0:02.0f}_tau10_vega_irac4_lf.txt'],
                      filterlist = None):
     
@@ -179,7 +179,7 @@ if __name__ == '__main__':
         print(cloud)
         dat = total_cloud_data(cloud, lfstrings=lfstrings, basti=basti,
                                filterlist=filters)
-        out = open(out=outst.format(cloud), "wb")
+        out = open(outst.format(cloud), "wb")
         pickle.dump(dat[0], out)
         out.close()
 
