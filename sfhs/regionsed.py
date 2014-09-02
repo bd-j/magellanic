@@ -37,10 +37,10 @@ def one_region_sed(sfhs, zmet, sps, t_lookback = 0, lf_bases = None):
 
         # Get the intrinsic spectrum for this metallicity SFH
         #  and add to the total spectrum
-        wave, zspec, aw = bsp.bursty_sps(t_lookback, lt, sfr, sps)
+        wave, zspec, aw, zmass = bsp.bursty_sps(t_lookback, lt, sfr, sps)
         spec += zspec[0,:]
-        mstar += mtot
-    return spec, wave
+        mstar += zmass[0]
+    return spec, wave, mstar
 
 def one_region_lf(sfhs, zmet, lf_bases, t_lookback = 0):
     """

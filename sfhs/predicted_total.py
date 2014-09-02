@@ -23,20 +23,21 @@ wlengths = {'2': '{4.5\mu m}',
 
 def total_cloud_data(cloud, basti=False,
                      lfstrings=['z{0:02.0f}_tau10_vega_irac4_lf.txt'],
-                     filterlist = None):
+                     filternames = None):
     
     #########
     # Initialize the ingredients (SPS, SFHs, LFs)
     #########
     # SPS
-    if filterlist is not None:
+    if filternames is not None:
         sps = fsps.StellarPopulation(add_agb_dust_model = True)
         sps.params['sfh'] = 0
         sps.params['agb_dust'] = agb_dust
         dust = ['nodust', 'agbdust']
         sps.params['imf_type'] = 0.0 #salpeter
-        filterlist = observate.load_filters(filterlist)
-    
+        filterlist = observate.load_filters(filternames)
+    else:
+        filterlist = None
     # SFHs
     if cloud.lower() == 'lmc':
         regions = utils.lmc_regions()
@@ -75,13 +76,13 @@ def total_cloud_data(cloud, basti=False,
         total_zmet = dat['zmet']
     
     #loop over the different bands (and whatever else) for the LFs
-    lfs, maggies = [], None
+    lfs, maggies, mass = [], None, None
     for i,lf_base in enumerate(lf_bases):
         lf = rsed.one_region_lf(copy.deepcopy(total_sfhs),
                                 total_zmet, lf_base)
         lfs += [lf]
     if filterlist is not None:
-        spec, wave = rsed.one_region_sed(copy.deepcopy(total_sfhs),
+        spec, wave, mass = rsed.one_region_sed(copy.deepcopy(total_sfhs),
                                          total_zmet, sps )
         mags = observate.getSED(wave, spec * rsed.to_cgs,
                                 filterlist = filterlist)
@@ -94,9 +95,9 @@ def total_cloud_data(cloud, basti=False,
     total_values['agb_clfs'] = lfs
     total_values['clf_mags'] = bins
     total_values['sed_ab_maggies'] = maggies
-    total_values['sed_filters'] = filters
+    total_values['sed_filters'] = filternames
     total_values['lffiles'] = lfstrings
-    
+    total_values['mstar'] = mass
     return total_values, total_sfhs
 
 def sum_sfhs(sfhs1, sfhs2):
@@ -178,11 +179,11 @@ if __name__ == '__main__':
                 lfstrings += [lfst.format(ldir, agb_dust*10.0, band)]
         print(cloud)
         dat = total_cloud_data(cloud, lfstrings=lfstrings, basti=basti,
-                               filterlist=filters)
+                               filternames=filters)
         out = open(outst.format(cloud), "wb")
         pickle.dump(dat[0], out)
         out.close()
-
+        print(cloud, dat[0]['mstar'])
         write_composite_clfs(dat[0], ldir, '{0}cclf_{1}_'.format(cdir, cloud))
 
         

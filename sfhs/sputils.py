@@ -116,19 +116,20 @@ def bursty_sps(lookback_time, lt, sfr, sps):
     # Set up output
     target_lt = np.atleast_1d(lookback_time)
     int_spec = np.zeros( [ len(target_lt), len(wave) ] )
+    mstar = np.zeros( len(target_lt) )
     aw = np.zeros( [ len(target_lt), len(ssp_ages) ] )
 
-    for i,tl in enumerate(target_lt):
-        valid = (lt >= tl) #only consider time points in the past of this lookback time.
-        inds, weights = weights_1DLinear(np.log(ssp_ages), np.log(lt[valid] - tl))
+    for i,tlt in enumerate(target_lt):
+        valid = (lt >= tlt) #only consider time points in the past of this lookback time.
+        inds, weights = weights_1DLinear(np.log(ssp_ages), np.log(lt[valid] - tlt))
         # Aggregate the weights for each ssp time index, after accounting for SFR
         agg_weights = np.bincount( inds.flatten(),
                                    weights = (weights * sfr[valid,None]).flatten(),
                                    minlength = len(ssp_ages) ) * dt
         int_spec[i,:] = (spec * agg_weights[:,None]).sum(axis = 0)
         aw[i,:] = agg_weights
-
-    return wave, int_spec, aw
+        mstar[i] = (mass[:,zmet] * agg_weights).sum()
+    return wave, int_spec, aw, mstar
 
 
 def bursty_lf(lookback_time, lt, sfr, sps_lf):
