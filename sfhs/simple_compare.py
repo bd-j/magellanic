@@ -8,6 +8,8 @@ smccols = {'RA': 'RAJ2000',
            'DEC': 'DEJ2000',
            'IRAC4': '__8_0_',
            'IRAC2': '__4_5_',
+           'IRAC4_err': 'e__8_0_',
+           'IRAC2_err': 'e__4_5_',
            'STARTYPE': 'Class',
            'agb_codes': ['C-AGB', 'O-AGB', 'x-AGB', 'aO-AGB','FIR']
           }
@@ -15,6 +17,8 @@ lmccols = {'RA': 'RA',
            'DEC': 'DEC',
            'IRAC4': 'IRAC4',
            'IRAC2': 'IRAC2',
+           'IRAC4_err': 'DIRAC4',
+           'IRAC2_err': 'DIRAC2',
            'STARTYPE': 'FLAG',
            'agb_codes': ['C', 'O', 'X', 'aO/C', 'aO/O', 'RS-C', 'RS-O', 'RS-X', 'RS-a']
            }
