@@ -23,7 +23,7 @@ wlengths = {'2': '{4.5\mu m}',
 
 def total_cloud_data(cloud, basti=False,
                      lfstrings=['z{0:02.0f}_tau10_vega_irac4_lf.txt'],
-                     filternames = None):
+                     filternames = None, one_metal=None):
     
     #########
     # Initialize the ingredients (SPS, SFHs, LFs)
@@ -74,7 +74,15 @@ def total_cloud_data(cloud, basti=False,
     for n, dat in regions.iteritems():
         total_sfhs = sum_sfhs(total_sfhs, dat['sfhs'])
         total_zmet = dat['zmet']
-    
+
+    #collapse SFHs and LFs base to one metallicity
+    if one_metal is not None:
+        ts = None
+        for sfh in total_sfhs:
+            ts = sum_sfhs(ts, sfh)
+        lf_bases = [lfbases[one_metal]]
+        total_zmet = [total_zmet[one_metal]]
+        
     #loop over the different bands (and whatever else) for the LFs
     lfs, maggies, mass = [], None, None
     for i,lf_base in enumerate(lf_bases):

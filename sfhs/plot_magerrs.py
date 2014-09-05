@@ -44,6 +44,26 @@ def readclf(filename):
     mag, num = mag[good], num[good]
     return mag, num
 
+def brightobjs(cloud, band, mlim):
+    defstring = cloud_corners(cloud)
+    region = ds9reg.Polygon(defstring)
+    cat, cols = cloud_cat(cloud)
+    subcat = select(cat, cols, region, codes=cols['agb_codes'])
+    mag = subcat[cols[band]]
+    bright = mag < mlim
+    return subcat[bright]
+
+def clf_to_lf(clfname, bins=None):
+    mag, num = readclf(clfname)
+    dn = -np.diff(num)
+    if bins is not None:
+        num = np.interp(bins, num, mag)
+        dn = -np.diff(num)
+        mag = bins
+        
+    return dn, mag
+
+
 if __name__ == '__main__':
     
     sigma = 0.5
