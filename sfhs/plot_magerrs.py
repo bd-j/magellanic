@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as pl
+import pyfits
 from simple_compare import *
 
 def plot_magerrs():
@@ -44,15 +45,36 @@ def readclf(filename):
     mag, num = mag[good], num[good]
     return mag, num
 
-def brightobjs(cloud, band, mlim):
+def brightobjs(cloud, band, mlim=None, nbright=None):
     defstring = cloud_corners(cloud)
     region = ds9reg.Polygon(defstring)
     cat, cols = cloud_cat(cloud)
     subcat = select(cat, cols, region, codes=cols['agb_codes'])
     mag = subcat[cols[band]]
-    bright = mag < mlim
-    return subcat[bright]
+    if mlim is not None:
+        bright = mag < mlim
+    if nbright is not None:
+        oo = np.argsort(mag)
+        bright = oo[:(nbright+1)]
+    return subcat[bright], cols
 
+def get_stamp(imagename, cat, sx=31, sy=31)
+    im = pyfits.getdata(imagename)
+    hdr = pyfits.getdata(imagename)
+    wcs = pywcs.WCS(hdr)
+    cx, cy = np.round(wcs.wcs_world2pix(cat['RAh']*15.,cat['Dec'], 0)).astype('<i8')
+    cols = np.arange(sx) - (sx-1)/2
+    rows = np.arange(sy) - (sy-1)/2
+    #2D array of 1-d indices of a subarray
+    patch = (cols[:,None]*im.shape[1] + rows[None,:] )
+    #3D array of subarrays for each center
+    inds = patch[None,...] + (cy*im.shape[1]+cx)[:,None,None]
+    inds = inds.transpose(0,2,1)
+    imrec['nuv_stamp'] = im.ravel()[inds]
+    inds = 0
+
+
+    
 def clf_to_lf(clfname, bins=None):
     mag, num = readclf(clfname)
     dn = -np.diff(num)
@@ -64,9 +86,7 @@ def clf_to_lf(clfname, bins=None):
     return dn, mag
 
 
-if __name__ == '__main__':
-    
-    sigma = 0.5
+def magerr_plots(sigma=0.5):
     clfname = 'results_compare/MG08/clf.lmc.irac2.tau10.dat'
     dm = 18.5
     omag, onum = readclf(clfname)
@@ -86,3 +106,12 @@ if __name__ == '__main__':
     fig, ax = plot_magerrs()
     fig.savefig('obs_mag_errs.png')
     pl.close(fig)
+    
+if __name__ == '__main__':
+    
+    cloud, band, nbright = 'lmc', 'IRAC4', 15
+    bright, cols = brightobjs(cloud, band, nbright=nbright)
+    out = open('{0}_{1}_brightest{2}.reg'.format(cloud, band.lower(), nbright),"w")
+    for b in bright:
+        out.write('{0:8.4f} {1:8.4f}\n'.format(b[cols['RA']], b[cols['DEC']]))
+    out.close()
