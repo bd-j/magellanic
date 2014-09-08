@@ -1,7 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as pl
-import pyfits
+import astropy.io.fits as pyfits
+import astropy.wcs as pywcs
 from simple_compare import *
+
+imdir = '/Users/bjohnson/Projects/magellanic/images/'
+imnamemap = {}
+imnamemap['lmc'] = {'IRAC4': imdir+'SAGE_LMC_IRAC8.0_2_mosaic.fits',
+                    'IRAC2': imdir}
+imnamemap['smc'] = {'IRAC4': imdir+'SAGE_SMC_IRAC8.0_2_mosaic.fits.gz',
+                    'IRAC2': imdir}
 
 def plot_magerrs():
     bands = ['IRAC2', 'IRAC4']
@@ -55,14 +63,21 @@ def brightobjs(cloud, band, mlim=None, nbright=None):
         bright = mag < mlim
     if nbright is not None:
         oo = np.argsort(mag)
-        bright = oo[:(nbright+1)]
+        bright = oo[:nbright]
     return subcat[bright], cols
 
-def get_stamp(imagename, cat, sx=31, sy=31)
+def get_stamp(imagename, ra, dec, sx=31, sy=31):
+    """
+    Given lists of RA and Dec (in decimal degrees), and an image name,
+    return an array of small images roughly centered on the objects.
+    """
+    stamps = np.zeros([ len(ra), sx, sy])
+    #read image
     im = pyfits.getdata(imagename)
-    hdr = pyfits.getdata(imagename)
+    hdr = pyfits.getheader(imagename)
     wcs = pywcs.WCS(hdr)
-    cx, cy = np.round(wcs.wcs_world2pix(cat['RAh']*15.,cat['Dec'], 0)).astype('<i8')
+    #central values.
+    cx, cy = np.round(wcs.wcs_world2pix(ra, dec, 0)).astype('<i8')
     cols = np.arange(sx) - (sx-1)/2
     rows = np.arange(sy) - (sy-1)/2
     #2D array of 1-d indices of a subarray
@@ -70,9 +85,9 @@ def get_stamp(imagename, cat, sx=31, sy=31)
     #3D array of subarrays for each center
     inds = patch[None,...] + (cy*im.shape[1]+cx)[:,None,None]
     inds = inds.transpose(0,2,1)
-    imrec['nuv_stamp'] = im.ravel()[inds]
+    stamps = im.ravel()[inds]
     inds = 0
-
+    return stamps
 
     
 def clf_to_lf(clfname, bins=None):
@@ -109,9 +124,27 @@ def magerr_plots(sigma=0.5):
     
 if __name__ == '__main__':
     
-    cloud, band, nbright = 'lmc', 'IRAC4', 15
+    cloud, band, nbright = 'lmc', 'IRAC4', 16
+    imname = imnamemap[cloud][band]
     bright, cols = brightobjs(cloud, band, nbright=nbright)
+    stamps = get_stamp(imname, bright[cols['RA']], bright[cols['DEC']],
+                        sx=31, sy=31)
+    
     out = open('{0}_{1}_brightest{2}.reg'.format(cloud, band.lower(), nbright),"w")
-    for b in bright:
+    nax = int(np.sqrt(nbright))
+    fig, axes = pl.subplots(nax, nax, figsize=(8,8))
+    for i,b in enumerate(bright):
+        ax = axes.flatten()[i]
         out.write('{0:8.4f} {1:8.4f}\n'.format(b[cols['RA']], b[cols['DEC']]))
+        ax.imshow(np.log10(stamps[i,:,:]), interpolation='nearest')
+        ax.annotate('{0:3.2f}'.format(b[cols[band]]), (23,5), color='red')
+        ax.annotate(r'$\alpha,\delta=${0:3.2f},{1:3.2f}'.format(b[cols['RA']], b[cols['DEC']]),
+                    (1,30), color='red', size=10)
+    [pl.setp(ax.get_xticklabels(), visible = False) for ax in axes.flatten()]
+    [pl.setp(ax.get_yticklabels(), visible = False) for ax in axes.flatten()]
+    fig.subplots_adjust(wspace=0.05, hspace=0.05)
+    fig.suptitle('{0} @ {1}'.format(cloud, band))
     out.close()
+    fig.show()
+    fig.savefig()
+    
