@@ -60,23 +60,24 @@ def one_region_lf(sfhs, zmet, lf_bases, t_lookback = 0):
         
     return lf
 
-def one_region_lfs(sfhs, zmet, lf_bases, t_lookback = 0, summed=True):
+def one_region_lfs(sfhs, zmet, lf_bases, t_lookback = 0):
     """
     Get the AGB LF of one region, given a list of SFHs for each
     metallicity and a list of lf_bases for each metallicity.
     """
-    lf, total_lf = [], 0.
+    lf, total_lf, logages = [], 0., []
     #loop over metallicities for each region
     for i, (sfh, lf_basis) in enumerate(zip(sfhs, lf_bases)):
         # Get the weighted agb LFs from this metallicity SFH, sum over
         # ages, interpolate onto lfbins, and add to total LF
         bins, wlf = one_sfh_lfs(sfh, lf_basis, t_lookback=t_lookback)
         wlf = wlf[0,:,:] #restrict to one lookback time
-        lf8 = interp1d(bins, wlf, bounds_error =False)
+        lf8 = interp1d(bins, wlf, bounds_error =False, fill_value=0.0)
         dat = lf8(lfbins)
         total_lf += dat.sum(axis=0)
         lf += [dat]
-    return lf, total_lf
+        logages += [lf_basis['ssp_ages']]
+    return lf, total_lf, logages
 
 def one_sfh_lfs(sfh, lf_basis, t_lookback = 0):
     """
