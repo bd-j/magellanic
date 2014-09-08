@@ -80,7 +80,7 @@ def total_cloud_data(cloud, basti=False,
         ts = None
         for sfh in total_sfhs:
             ts = sum_sfhs(ts, sfh)
-        lf_bases = [lfbases[one_metal]]
+        lf_bases = [lfbases[one_metal]] #WRONGGGG!!!!!
         total_zmet = [total_zmet[one_metal]]
         
     #loop over the different bands (and whatever else) for the LFs
@@ -173,10 +173,10 @@ if __name__ == '__main__':
     filters = None
     
     ldir, cdir = 'lf_data/', 'composite_lfs/'
-    outst = '{0}_cg10.p'
+    outst = '{0}_n2teffcut.p'
     # total_cloud_data will loop over the appropriate (for the
     # isochrone) metallicities for a given lfst filename template
-    lfst = '{0}z{{0:02.0f}}_tau{1:2.0f}_vega_irac{2}_lf.txt'
+    lfst = '{0}z{{0:02.0f}}_tau{1:2.1f}_vega_irac{2}_n2_teffcut_lf.txt'
     basti = False
     
     
@@ -184,7 +184,7 @@ if __name__ == '__main__':
         lfstrings = []
         for agb_dust in [1.0]:
             for band in ['2','4']:
-                lfstrings += [lfst.format(ldir, agb_dust*10.0, band)]
+                lfstrings += [lfst.format(ldir, agb_dust, band)]
         print(cloud)
         dat = total_cloud_data(cloud, lfstrings=lfstrings, basti=basti,
                                filternames=filters)

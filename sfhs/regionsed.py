@@ -50,27 +50,47 @@ def one_region_lf(sfhs, zmet, lf_bases, t_lookback = 0):
     lf = 0
     #loop over metallicities for each region
     for i, (sfh, lf_basis) in enumerate(zip(sfhs, lf_bases)):
-        # Put sfh in linear units, adjusting most recent time bin
-        sfh['t1'] = 10.**sfh['t1']
-        sfh['t2'] = 10.**sfh['t2']
-        sfh['sfr'][0] *=  1 - (sfh['t1'][0]/sfh['t2'][0])
-        sfh[0]['t1'] = 0.
-        mtot = ((sfh['t2'] - sfh['t1']) * sfh['sfr']).sum()
-
-        # Convert into a high resolution sfh,
-        #  with *no* intrabin sfr variations (f_burst =0)
-        lt, sfr, fb = bsp.burst_sfh(f_burst = 0., sfh = sfh,
-                                    fwhm_burst = 0.05,  contrast = 1.,
-                                    bin_res = 10.)
-
-        # Get the agb LF from this mettalicity interpolate onto
-        # lbins, and add to total LF
-        bins, zlf, aw = bsp.bursty_lf(t_lookback, lt, sfr, lf_basis)
+        # Get the weighted agb LFs from this metallicity SFH, sum over
+        # ages, interpolate onto lfbins, and add to total LF
+        bins, wlf = one_sfh_lfs(sfh, lf_basis, t_lookback=t_lookback)
+        zlf = wlf.sum(axis=1)
+        #print(bins.shape, zlf.shape)
         lf8 = interp1d(bins, zlf, bounds_error =False)
         lf += lf8(lfbins)[0,:]
         
     return lf
-    
+
+def one_sfh_lfs(sfh, lf_basis, t_lookback = 0):
+    """
+    Get the AGB LFs for one SFH.
+
+    :returns bins: ndarray shape (nage, nmagbin)
+        The LFs, weighted by the SFH, for each age
+
+    :returns weighted_lfs: ndarray shape (nt, nage, nmagbin) The LFs,
+        weighted by the SFH, for each age (nage) and requested
+        lookback time (nt).
+    """
+    bins, lf, ssp_ages = lf_basis['bins'], lf_basis['lf'], 10**lf_basis['ssp_ages']
+    # Put sfh in linear units, adjusting most recent time bin
+    sfh['t1'] = 10.**sfh['t1']
+    sfh['t2'] = 10.**sfh['t2']
+    sfh['sfr'][0] *=  1 - (sfh['t1'][0]/sfh['t2'][0])
+    sfh[0]['t1'] = 0.
+    mtot = ((sfh['t2'] - sfh['t1']) * sfh['sfr']).sum()
+
+    # Convert into a high resolution sfh,
+    #  with *no* intrabin sfr variations (f_burst =0)
+    lt, sfr, fb = bsp.burst_sfh(f_burst = 0., sfh = sfh,
+                                fwhm_burst = 0.05,  contrast = 1.,
+                                bin_res = 20.)
+
+    # Get the weights for each age and muliply by the LFs
+    aw = bsp.sfh_weights(lt, sfr, ssp_ages, np.atleast_1d(t_lookback))
+    weighted_lfs = (lf[None,:,:] * aw[:,:,None])
+        
+    return bins, weighted_lfs
+
 def all_region_sed(regions, sps, filters = ['galex_NUV'], lf_bases = None):
     """
     Given a cloud name (lmc | smc) and a filter, determine the

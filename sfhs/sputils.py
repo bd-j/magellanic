@@ -110,25 +110,15 @@ def bursty_sps(lookback_time, lt, sfr, sps):
     zmet = sps.params['zmet']-1
     spec, mass, _ = sps.all_ssp_spec(peraa =True, update = True)
     spec = spec[:,:,zmet].T
+    mass = mass[:,zmet]
     wave = sps.wavelengths
     ssp_ages = 10**sps.ssp_ages #in yrs
-
-    # Set up output
     target_lt = np.atleast_1d(lookback_time)
-    int_spec = np.zeros( [ len(target_lt), len(wave) ] )
-    mstar = np.zeros( len(target_lt) )
-    aw = np.zeros( [ len(target_lt), len(ssp_ages) ] )
-
-    for i,tlt in enumerate(target_lt):
-        valid = (lt >= tlt) #only consider time points in the past of this lookback time.
-        inds, weights = weights_1DLinear(np.log(ssp_ages), np.log(lt[valid] - tlt))
-        # Aggregate the weights for each ssp time index, after accounting for SFR
-        agg_weights = np.bincount( inds.flatten(),
-                                   weights = (weights * sfr[valid,None]).flatten(),
-                                   minlength = len(ssp_ages) ) * dt
-        int_spec[i,:] = (spec * agg_weights[:,None]).sum(axis = 0)
-        aw[i,:] = agg_weights
-        mstar[i] = (mass[:,zmet] * agg_weights).sum()
+    
+    aw = sfh_weights(lt, sfr, ssp_ages, lookback_time=target_lt)
+    int_spec = (spec[None,:,:] * aw[:,:,None]).sum(axis=1)
+    mstar = (mass[None,:] * aw).sum(axis=-1)
+    
     return wave, int_spec, aw, mstar
 
 
@@ -164,14 +154,38 @@ def bursty_lf(lookback_time, lt, sfr, sps_lf):
         lookback_time.  Useful for debugging.
         
     """
-    dt = lt[1] - lt[0]
     bins, lf, ssp_ages = sps_lf['bins'], sps_lf['lf'], 10**sps_lf['ssp_ages']
-
-    # Set-up output
     target_lt = np.atleast_1d(lookback_time)
-    int_lf = np.zeros( [ len(target_lt), len(bins) ] )
-    aw = np.zeros( [ len(target_lt), len(ssp_ages) ] )
+    aw = sfh_weights(lt, sfr, ssp_ages, lookback_time=target_lt)
+    int_lf = (lf[None,:,:] * aw[:,:,None]).sum(axis=1)
+    
+    return bins, int_lf, aw
 
+
+def sfh_weights(lt, sfr, ssp_ages, lookback_time=0):
+    """        
+    :param lt: ndarray, shape (ntime)
+        The lookback time sequence of the provided SFH.  Assumed to
+        have have equal linear time intervals.
+        
+    :param sfr: ndarray, shape (ntime)
+        The SFR corresponding to each element of lt, in M_sun/yr.
+
+    :param ssp_ages: ndarray, shape (nage)
+        The ages at which you want weights.  Linear yrs.
+
+    :param target_lt: scalar or ndarray, shape (ntarg)
+        The lookback time(s) at which to obtain the spectrum. In yrs.
+
+    :returns aw: ndarray, shape(ntarg, nage)
+        The total weights of each LF for each requested
+        lookback_time.  Useful for debugging.
+        
+    """
+
+    dt = lt[1] - lt[0]
+    target_lt = np.atleast_1d(lookback_time)
+    aw = np.zeros( [ len(target_lt), len(ssp_ages) ] )
     for i,tl in enumerate(target_lt):
         valid = (lt >= tl) #only consider time points in the past of this lookback time.
         inds, weights = weights_1DLinear(np.log(ssp_ages), np.log(lt[valid] - tl))
@@ -179,11 +193,8 @@ def bursty_lf(lookback_time, lt, sfr, sps_lf):
         agg_weights = np.bincount( inds.flatten(),
                                    weights = (weights * sfr[valid,None]).flatten(),
                                    minlength = len(ssp_ages) ) * dt
-        int_lf[i,:] = (lf * agg_weights[:,None]).sum(axis = 0)
         aw[i,:] = agg_weights
-
-    return bins, int_lf, aw
-
+    return aw
 
 def gauss(x, mu, A, sigma):
     """
@@ -299,8 +310,8 @@ def read_lfs(filename):
         lf:       The interpolated CLFs, ndarray of shape (nage, nmag)
         bins:     Magnitude grid for the interpolated CLFs, ndarray of
                   shape (nmag,)
-        orig:     2-element list contining the original magnitude grids
-                  and CLFs as lists.
+        orig:     2-element list consisting of the original magnitude grids
+                  and CLFs, each also as lists.
         
     """
     age, bins, lfs = [], [], []
