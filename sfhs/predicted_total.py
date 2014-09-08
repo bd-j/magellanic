@@ -21,9 +21,10 @@ import mcutils as utils
 wlengths = {'2': '{4.5\mu m}',
             '4': '{8\mu m}'}
 
-def total_cloud_data(cloud, basti=False,
-                     lfstrings=['z{0:02.0f}_tau10_vega_irac4_lf.txt'],
-                     filternames = None, one_metal=None):
+def total_cloud_data(cloud, filternames = None, basti=False,
+                     lfstring='z{0:02.0f}_tau10_vega_irac4_lf.txt',
+                     agb_dust=1.0,
+                     one_metal=None):
     
     #########
     # Initialize the ingredients (SPS, SFHs, LFs)
@@ -59,11 +60,9 @@ def total_cloud_data(cloud, basti=False,
     # these are sored as a list of lists.  The outer list is differnt
     # isochrones, wavelengths, agb_dusts, the inner list if different
     # metallicities
-    lf_bases = []
-    for lfstring in lfstrings:
-        print(lfstring)
-        lffiles = [lfstring.format(z) for z in zlist]
-        lf_bases += [[read_lfs(f) for f in lffiles]]
+    
+    lffiles = [lfstring.format(z) for z in zlist]
+    lf_base = [read_lfs(f) for f in lffiles]
     
     #############
     # Loop over each region, do SFH integrations, filter convolutions
@@ -80,15 +79,13 @@ def total_cloud_data(cloud, basti=False,
         ts = None
         for sfh in total_sfhs:
             ts = sum_sfhs(ts, sfh)
-        lf_bases = [lfbases[one_metal]] #WRONGGGG!!!!!
+        lf_base = [lfbase[one_metal]] 
         total_zmet = [total_zmet[one_metal]]
         
     #loop over the different bands (and whatever else) for the LFs
-    lfs, maggies, mass = [], None, None
-    for i,lf_base in enumerate(lf_bases):
-        lf = rsed.one_region_lf(copy.deepcopy(total_sfhs),
-                                total_zmet, lf_base)
-        lfs += [lf]
+    lf = rsed.one_region_lf(copy.deepcopy(total_sfhs),
+                            total_zmet, lf_base)
+    maggies, mass = None, None
     if filterlist is not None:
         spec, wave, mass = rsed.one_region_sed(copy.deepcopy(total_sfhs),
                                          total_zmet, sps )
@@ -100,11 +97,11 @@ def total_cloud_data(cloud, basti=False,
     # Write output
     ############
     total_values = {}
-    total_values['agb_clfs'] = lfs
+    total_values['agb_clf'] = lf
     total_values['clf_mags'] = bins
     total_values['sed_ab_maggies'] = maggies
     total_values['sed_filters'] = filternames
-    total_values['lffiles'] = lfstrings
+    total_values['lffile'] = lfstring
     total_values['mstar'] = mass
     return total_values, total_sfhs
 
@@ -180,18 +177,17 @@ if __name__ == '__main__':
     basti = False
     
     
-    for cloud in ['smc', 'lmc']:
-        lfstrings = []
-        for agb_dust in [1.0]:
-            for band in ['2','4']:
-                lfstrings += [lfst.format(ldir, agb_dust, band)]
-        print(cloud)
-        dat = total_cloud_data(cloud, lfstrings=lfstrings, basti=basti,
-                               filternames=filters)
-        out = open(outst.format(cloud), "wb")
-        pickle.dump(dat[0], out)
-        out.close()
-        print(cloud, dat[0]['mstar'])
-        write_composite_clfs(dat[0], ldir, '{0}cclf_{1}_'.format(cdir, cloud))
+    lfstrings = []
+    for agb_dust in [1.0]:
+        for band in ['2','4']:
+            lfstrings += [lfst.format(ldir, agb_dust, band)]
 
+    for cloud in ['smc', 'lmc']:
+        rdir = '{0}cclf_{1}_'.format(cdir, cloud)
+        for lfstring in lfstrings:
+            dat, sfhs = total_cloud_data(cloud, filternames=filters,
+                                         lfstring=lfstring, basti=basti)
+            outfile = lfstring.replace(ldir, rdir).replace('z{0:02.0f}_','').replace('.txt','.dat')
+            write_clf([dat['clf_mags'], dat['agb_clf']], outfile, lfstring)
+            print(cloud, dat['mstar'])
         
