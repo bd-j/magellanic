@@ -82,9 +82,9 @@ def total_cloud_data(cloud, filternames = None, basti=False,
         lf_base = [lfbase[one_metal]] 
         total_zmet = [total_zmet[one_metal]]
         
-    #loop over the different bands (and whatever else) for the LFs
-    lf = rsed.one_region_lf(copy.deepcopy(total_sfhs),
-                            total_zmet, lf_base)
+    #get LFs broken out by age and metallicity as well as the total
+    lfs_zt, lf = rsed.one_region_lfs(copy.deepcopy(total_sfhs),
+                                     total_zmet, lf_base)
     maggies, mass = None, None
     if filterlist is not None:
         spec, wave, mass = rsed.one_region_sed(copy.deepcopy(total_sfhs),
@@ -98,6 +98,7 @@ def total_cloud_data(cloud, filternames = None, basti=False,
     ############
     total_values = {}
     total_values['agb_clf'] = lf
+    total_values['agb_clfs_zt'] = lfs_zt
     total_values['clf_mags'] = bins
     total_values['sed_ab_maggies'] = maggies
     total_values['sed_filters'] = filternames
@@ -155,7 +156,8 @@ def write_clf(wclf, filename, lftype):
 def write_composite_clfs(total_values, ldir, rdir):
     """
     Take the 0th element output of total_cloud_data and write the
-    composite CLFs it contains to .dat files
+    composite CLFs it contains to .dat files.
+    ****Deprecated****
     """
     dat = total_values
     for i, lfstring in enumerate(dat['lffiles']):
@@ -175,17 +177,18 @@ if __name__ == '__main__':
     # isochrone) metallicities for a given lfst filename template
     lfst = '{0}z{{0:02.0f}}_tau{1:2.1f}_vega_irac{2}_n2_teffcut_lf.txt'
     basti = False
-    
-    
-    lfstrings = []
+
+    #set up the list of CLF filename templates for differnt bands
+    lfstrings, adlist = [], []
     for agb_dust in [1.0]:
         for band in ['2','4']:
             lfstrings += [lfst.format(ldir, agb_dust, band)]
-
+            adlist += [agb_dust]
+    #loop over clouds (and bands and agb_dust) to produce clfs
     for cloud in ['smc', 'lmc']:
         rdir = '{0}cclf_{1}_'.format(cdir, cloud)
-        for lfstring in lfstrings:
-            dat, sfhs = total_cloud_data(cloud, filternames=filters,
+        for lfstring, ad in zip(lfstrings, adlist):
+            dat, sfhs = total_cloud_data(cloud, filternames=filters, agb_dust=ad,
                                          lfstring=lfstring, basti=basti)
             outfile = lfstring.replace(ldir, rdir).replace('z{0:02.0f}_','').replace('.txt','.dat')
             write_clf([dat['clf_mags'], dat['agb_clf']], outfile, lfstring)
