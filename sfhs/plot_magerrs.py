@@ -7,9 +7,9 @@ from simple_compare import *
 imdir = '/Users/bjohnson/Projects/magellanic/images/'
 imnamemap = {}
 imnamemap['lmc'] = {'IRAC4': imdir+'SAGE_LMC_IRAC8.0_2_mosaic.fits',
-                    'IRAC2': imdir}
-imnamemap['smc'] = {'IRAC4': imdir+'SAGE_SMC_IRAC8.0_2_mosaic.fits.gz',
-                    'IRAC2': imdir}
+                    'IRAC2': imdir+'SAGE_LMC_IRAC4.5_2_mosaic.fits'}
+imnamemap['smc'] = {'IRAC4': imdir+'SAGE_SMC_IRAC8.0_2_mosaic.fits',
+                    'IRAC2': imdir+'SAGE_SMC_IRAC4.5_2_mosaic.fits'}
 
 def plot_magerrs():
     bands = ['IRAC2', 'IRAC4']
@@ -124,8 +124,8 @@ def magerr_plots(sigma=0.5):
     
 if __name__ == '__main__':
     
-    cloud, band, nbright = 'lmc', 'IRAC4', 16
-    imname = imnamemap[cloud][band]
+    cloud, band, nbright = 'smc', 'IRAC4', 16
+    imname = imnamemap[cloud.lower()][band]
     bright, cols = brightobjs(cloud, band, nbright=nbright)
     stamps = get_stamp(imname, bright[cols['RA']], bright[cols['DEC']],
                         sx=31, sy=31)
@@ -143,8 +143,8 @@ if __name__ == '__main__':
     [pl.setp(ax.get_xticklabels(), visible = False) for ax in axes.flatten()]
     [pl.setp(ax.get_yticklabels(), visible = False) for ax in axes.flatten()]
     fig.subplots_adjust(wspace=0.05, hspace=0.05)
-    fig.suptitle('{0} @ {1}'.format(cloud, band))
+    fig.suptitle('{0} @ {1}'.format(cloud.upper(), band))
     out.close()
     fig.show()
-    fig.savefig()
+    fig.savefig('{0}_{1}_brightest{2}.png'.format(cloud, band, nbright))
     
