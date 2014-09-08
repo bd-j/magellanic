@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as pl
 import astropy.io.fits as pyfits
 import astropy.wcs as pywcs
-from simple_compare import *
+from datautils import *
 
 imdir = '/Users/bjohnson/Projects/magellanic/images/'
 imnamemap = {}

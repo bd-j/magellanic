@@ -97,7 +97,7 @@ def write_clf(wclf, filename, lftype):
     out.close()
     
 
-def main(cloud, agb_dust):
+def plot_simple_compare(cloud, agb_dust):
     bands = ['IRAC2', 'IRAC4']
     # Get the observed CLFs
     defstring = cloud_corners(cloud)
@@ -129,4 +129,4 @@ def main(cloud, agb_dust):
 if __name__ == '__main__':
     clouds, agb_dust = ['smc', 'lmc'], 1.0
     for cloud in clouds:
-        main(cloud, agb_dust)
+        plot_simple_compare(cloud, agb_dust)

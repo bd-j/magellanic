@@ -55,7 +55,7 @@ def one_region_lf(sfhs, zmet, lf_bases, t_lookback = 0):
         bins, wlf = one_sfh_lfs(sfh, lf_basis, t_lookback=t_lookback)
         zlf = wlf.sum(axis=1)
         #print(bins.shape, zlf.shape)
-        lf8 = interp1d(bins, zlf, bounds_error =False)
+        lf8 = interp1d(bins, zlf, bounds_error=False, fill_value=0.0)
         lf += lf8(lfbins)[0,:]
         
     return lf
@@ -72,7 +72,7 @@ def one_region_lfs(sfhs, zmet, lf_bases, t_lookback = 0):
         # ages, interpolate onto lfbins, and add to total LF
         bins, wlf = one_sfh_lfs(sfh, lf_basis, t_lookback=t_lookback)
         wlf = wlf[0,:,:] #restrict to one lookback time
-        lf8 = interp1d(bins, wlf, bounds_error =False, fill_value=0.0)
+        lf8 = interp1d(bins, wlf, bounds_error=False, fill_value=0.0)
         dat = lf8(lfbins)
         total_lf += dat.sum(axis=0)
         lf += [dat]

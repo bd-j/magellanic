@@ -178,6 +178,15 @@ def plot_weighted_lfs(total_values, agebins=None, dm=0.0):
         ax.set_title('Z={0}'.format(z))
         ax.set_ylim(1,1e6)
     return fig, axes
+
+def rebin_lfs(lf, logages, agebins):
+    lf_rebinned = np.zeros([ len(agebins), lf.shape[1]])
+    for i, (start, stop) in enumerate(zip(agebins[0:-1], agebins[1:])):
+        this = (logages <= stop) & (logages > start)
+        if this.sum() == 0:
+            continue
+        lf_rebinned[i,:] = lf[this,:].sum(axis=0)
+    return lf_rebinned
     
 def write_clf(wclf, filename, lftype, colheads='N<m'):
     """
@@ -189,6 +198,8 @@ def write_clf(wclf, filename, lftype, colheads='N<m'):
         out.write('{0:.4f}   {1}\n'.format(m,n))
     out.close()
 
+def write_sub_clf(mag, dat, filename, lftype):
+    pass
 if __name__ == '__main__':
     
     #filters = ['galex_NUV', 'spitzer_irac_ch1',
