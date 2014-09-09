@@ -81,7 +81,7 @@ if __name__ == '__main__':
         subcat = select(cat, cols, region, codes=cols['agb_codes'])
         for band in bands:
             obs_clf = cumulative_lf(subcat, cols[band])
-            fstring = 'results_compare/obs_clf.{0}.{1}'
+            fstring = 'composite_lfs/obs_clf.{0}.{1}'
             write_clf(obs_clf, fstring.format(*values[0:2])+'.dat', 'Observed')
 
 
