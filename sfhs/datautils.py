@@ -2,6 +2,7 @@ import matplotlib.pyplot as pl
 import numpy as np
 import pickle
 import astropy.io.fits as pyfits
+import astropy.wcs as pywcs
 from sedpy import ds9region as ds9reg
 from lfutils import *
 
@@ -26,6 +27,13 @@ lmccols = {'RA': 'RA',
 
 rdir = '/Users/bjohnson/Projects/magellanic/sfhs/results_predicted/'
 
+def photometer(image, header, region):
+    wcs = pywcs.WCS(header)
+    yy, xx = np.indices(image.shape)
+    ra, dec = wcs.wcs_pix2world(xx.flatten(), yy.flatten(), 0)
+    sel = region.contains(ra.flatten(), dec.flatten())
+    flux = np.nansum(image.flatten()[sel])
+    return flux
 
 def select(catalog, coldict, region, codes=None):
     x, y = catalog[coldict['RA']], catalog[coldict['DEC']]

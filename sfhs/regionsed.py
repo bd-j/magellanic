@@ -9,7 +9,7 @@ lfbins = np.arange(-20, 1, 0.025)
 lsun, pc = 3.846e33, 3.085677581467192e18
 to_cgs = lsun/(4.0 * np.pi * (pc*10)**2 )
 
-def one_region_sed(sfhs, zmet, sps, t_lookback = 0, lf_bases = None):
+def one_region_sed(sfhs, zmet, sps, t_lookback = 0):
     """
     Get the spectrum of one region, given SFHs for each
     metallicity, a stellar population object, and lf_basis
@@ -21,7 +21,7 @@ def one_region_sed(sfhs, zmet, sps, t_lookback = 0, lf_bases = None):
     for i, sfh in enumerate(sfhs):
         #choose nearest metallicity
         zindex = np.abs(sps.zlegend - zmet[i]).argmin() + 1
-        sps.params['zmet'] = np.clip(zindex, 1, 5)
+        sps.params['zmet'] = np.clip(zindex, 1, len(sps.zlegend))
         # Put sfh in linear units, adjusting most recent time bin
         sfh['t1'] = 10.**sfh['t1']
         sfh['t2'] = 10.**sfh['t2']
@@ -42,25 +42,8 @@ def one_region_sed(sfhs, zmet, sps, t_lookback = 0, lf_bases = None):
         mstar += zmass[0]
     return spec, wave, mstar
 
-def one_region_lf(sfhs, zmet, lf_bases, t_lookback = 0):
-    """
-    Get the AGB LF of one region, given a list of SFHs for each
-    metallicity and a list of lf_bases for each metallicity.
-    """
-    lf = 0
-    #loop over metallicities for each region
-    for i, (sfh, lf_basis) in enumerate(zip(sfhs, lf_bases)):
-        # Get the weighted agb LFs from this metallicity SFH, sum over
-        # ages, interpolate onto lfbins, and add to total LF
-        bins, wlf = one_sfh_lfs(sfh, lf_basis, t_lookback=t_lookback)
-        zlf = wlf.sum(axis=1)
-        #print(bins.shape, zlf.shape)
-        lf8 = interp1d(bins, zlf, bounds_error=False, fill_value=0.0)
-        lf += lf8(lfbins)[0,:]
-        
-    return lf
 
-def one_region_lfs(sfhs, zmet, lf_bases, t_lookback = 0):
+def one_region_lfs(sfhs, lf_bases, t_lookback = 0):
     """
     Get the AGB LF of one region, given a list of SFHs for each
     metallicity and a list of lf_bases for each metallicity.

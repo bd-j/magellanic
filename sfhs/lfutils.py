@@ -53,6 +53,63 @@ def write_clf_many(clf, filename, lftype, colheads='N<m'):
 
     out.close()
 
+def read_villaume_lfs(filename):
+    """
+    Read a Villaume/FSPS produced cumulative LF file, interpolate LFs
+    at each age to a common magnitude grid, and return a dictionary
+    containing the interpolated CLFs and ancillary information.
+
+    :param filename:
+        The filename (including path) of the Villaume CLF file
+
+    :returns luminosity_func:
+        A dictionary with the following key-value pairs:
+        ssp_ages: Log of the age for each CLF, ndarray of shape (nage,)
+        lf:       The interpolated CLFs, ndarray of shape (nage, nmag)
+        bins:     Magnitude grid for the interpolated CLFs, ndarray of
+                  shape (nmag,)
+        orig:     2-element list consisting of the original magnitude grids
+                  and CLFs, each also as lists.
+        
+    """
+    age, bins, lfs = [], [], []
+    f = open(filename, "r")
+    for i,line in enumerate(f):
+        dat = [ float(d) for d in line.split() ]
+        if (i % 3) == 0:
+            age += [ dat[0]]
+        elif (i % 3) == 1:
+            bins += [dat]
+        elif (i % 3) == 2:
+            lfs += [dat]
+    f.close()
+    
+    age = np.array(age)
+    minage, maxage = np.min(age)-0.05, np.max(age)+0.10
+    minl, maxl = np.min(bins)[0], np.max(bins)[0]+0.01
+    allages = np.arange(minage, maxage, 0.05)
+    mags = np.arange(minl, maxl, 0.01)
+    print(minl, maxl)
+    
+    lf = np.zeros([ len(allages), len(mags)])
+    for i, t in enumerate(allages):
+        inds = np.isclose(t,age)
+        if inds.sum() == 0:
+            continue
+        ind = np.where(inds)[0][0]
+        x = np.array(bins[ind] + [np.max(mags)])
+        y = np.log10(lfs[ind] +[np.max(lfs[ind])])        
+        lf[i, :] = 10**interp1d(np.sort(x), np.sort(y), fill_value = -np.inf, bounds_error = False)(mags)
+
+    luminosity_func ={}
+    luminosity_func['ssp_ages'] = allages
+    luminosity_func['lf'] = lf
+    luminosity_func['bins'] = mags
+    luminosity_func['orig'] = [bins, lfs]
+
+    return luminosity_func
+
+    
 def plot_ssp_lf(base, wave, lffile):
     """
     Plot the interpolated input lfs to make sure they are ok.
