@@ -148,12 +148,17 @@ if __name__ == '__main__':
             
             #fig, ax = plot_weighted_lfs(dat, agebins = np.arange(9)*0.25 + 7.75, dm=dmod[cloud])
             #fig.suptitle('{0} @ IRAC{1}'.format(cloud.upper(), band))
-            #fig.savefig('{0}_clfs_by_age_and_Z_irac{1}'.format(cloud, band))
+            #fig.savefig('byage_clfs/{0}_clfs_by_age_and_Z_irac{1}'.format(cloud, band))
             #pl.close(fig)
 
             agebins = np.arange(9)*0.25 + 7.75
+            colheads = (len(agebins)-1) * ' N<m(t={})'
+            colheads = colheads.format(*(agebins[:-1]+agebins[1:])/2.)
             tbin_lfs = np.array([rebin_lfs(lf, ages, agebins) for lf, ages
                                  in zip(dat['agb_clfs_zt'], dat['logages'])])
+            write_clf_many([dat['clf_mags'], tbin_lfs.sum(axis=0)],
+                           outfile.replace(cdir,'byage_clfs/'), lfstring,
+                           colheads=colheads)
             
             print(cloud, dat['mstar'])
         
