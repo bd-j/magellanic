@@ -150,11 +150,16 @@ if __name__ == '__main__':
             dat, sfhs = total_cloud_data(cloud, filternames=filters, agb_dust=agb_dust,
                                          lfstring=lfstring, basti=basti)
             outfile = lfstring.replace(ldir, rdir).replace('z{0:02.0f}_','').replace('.txt','.dat')
-            write_clf([dat['clf_mags'], dat['agb_clf']], outfile, lfstring)
-            fig, ax = plot_weighted_lfs(dat, agebins = np.arange(9)*0.25 + 7.75, dm=dmod[cloud])
-            fig.suptitle('{0} @ IRAC{1}'.format(cloud.upper(), band))
-            fig.savefig('{0}_clfs_by_age_and_Z_irac{1}'.format(cloud, band))
-            pl.close(fig)
-            #write_sub_clfs(dat['clf_mags'], dat['agb_clfs_zt'], dat['logages'], outfile, lfstring)
+            write_clf_many([dat['clf_mags'], dat['agb_clf']], outfile, lfstring)
+            
+            #fig, ax = plot_weighted_lfs(dat, agebins = np.arange(9)*0.25 + 7.75, dm=dmod[cloud])
+            #fig.suptitle('{0} @ IRAC{1}'.format(cloud.upper(), band))
+            #fig.savefig('{0}_clfs_by_age_and_Z_irac{1}'.format(cloud, band))
+            #pl.close(fig)
+
+            agebins = np.arange(9)*0.25 + 7.75
+            tbinned_lfs = [rebin_lfs(lf, ages, agebins) for
+                           lf, ages in zip(dat['agb_clfs_zt'], dat['logages'])]
+            
             print(cloud, dat['mstar'])
         

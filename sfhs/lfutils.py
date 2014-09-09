@@ -8,7 +8,6 @@ def clf_to_lf(clfname, bins=None):
         num = np.interp(bins, num, mag)
         dn = -np.diff(num)
         mag = bins
-        
     return dn, mag
 
 def rebin_lfs(lf, logages, agebins):
@@ -46,7 +45,7 @@ def write_clf_many(clf, filename, lftype, colheads='N<m'):
     nrow = len(mag)
     assert nrow == dat.shape[0]
     ncol = dat.shape[1]
-    fstring = '{0:.4f}'+ ncol*'{}'+'\n'
+    fstring = '{:.4f}'+ ncol*' {:5.3e}'+'\n'
     out = open(filename,'w')
     out.write('{0}\n mag  {1}\n'.format(lftype, colheads))
     for m,d in zip(mag, dat):
