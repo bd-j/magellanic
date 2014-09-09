@@ -3,6 +3,11 @@ import numpy as np
 import matplotlib.pyplot as pl
 
 import astropy.io.fits as pyfits
+from sputils import read_lfs
+import regionsed as rsed
+import mcutils as utils
+from lfutils import *
+
 try: 
     import fsps
 except ImportError:
@@ -14,17 +19,17 @@ try:
 except ImportError:
     #you won't be able to predict integrated magnitudes
     pass
-from sputils import read_lfs
-import regionsed as rsed
-import mcutils as utils
-from lfutils import *
 
 wlengths = {'2': '{4.5\mu m}',
             '4': '{8\mu m}'}
 
 dmod = {'smc':18.9,
         'lmc':18.5}
-    
+
+cloud_info = {}
+cloud_info['smc'] = [utils.smc_regions(), 20, 23, [7, 13, 16], [3,5,6]]
+cloud_info['lmc'] = [utils.lmc_regions(), 48, 38, [7, 11, 13, 16], [3,4,5,6]]
+
 def total_cloud_data(cloud, filternames = None, basti=False,
                      lfstring='z{0:02.0f}_tau10_vega_irac4_lf.txt',
                      agb_dust=1.0,
@@ -43,34 +48,23 @@ def total_cloud_data(cloud, filternames = None, basti=False,
         filterlist = observate.load_filters(filternames)
     else:
         filterlist = None
+        
     # SFHs
-    if cloud.lower() == 'lmc':
-        regions = utils.lmc_regions()
-        nx, ny = 48, 38
-        zlist = [7, 11, 13, 16]
-        if basti:
-            zlist = [3,4,5,6]
-    elif cloud.lower() == 'smc':
-        regions = utils.smc_regions()
-        nx, ny = 20, 23
-        zlist = [7, 13, 16]
-        if basti:
-            zlist = [3,5,6]
-    else:
-        print('do not understand your MC designation')
-    rheader = regions.pop('header') #dump the header info from the reg. dict        
+    regions, nx, ny, zlist, zlist_basti = cloud_info[cloud.lower()]
+    if basti:
+            zlist = basti_zlist
+    if 'header' in regions.keys():
+        rheader = regions.pop('header') #dump the header info from the reg. dict        
     
     # LFs
-    # these are sored as a list of lists.  The outer list is differnt
-    # isochrones, wavelengths, agb_dusts, the inner list if different
-    # metallicities
-    
+    # these are stored as a list of different metallicities
     lffiles = [lfstring.format(z) for z in zlist]
     lf_base = [read_lfs(f) for f in lffiles]
     
     #############
-    # Loop over each region, do SFH integrations, filter convolutions
-    # and populate output images and LF cubes
+    # Sum the region SFHs into a total integrated SFH, and do the
+    # temporal interpolations to generate integrated spectra, LFs, and
+    # SEDs
     ############
     total_sfhs = None
     bins = rsed.lfbins
@@ -158,8 +152,8 @@ if __name__ == '__main__':
             #pl.close(fig)
 
             agebins = np.arange(9)*0.25 + 7.75
-            tbinned_lfs = [rebin_lfs(lf, ages, agebins) for
-                           lf, ages in zip(dat['agb_clfs_zt'], dat['logages'])]
+            tbin_lfs = np.array([rebin_lfs(lf, ages, agebins) for lf, ages
+                                 in zip(dat['agb_clfs_zt'], dat['logages'])])
             
             print(cloud, dat['mstar'])
         
