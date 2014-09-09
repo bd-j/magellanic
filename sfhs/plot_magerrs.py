@@ -3,6 +3,7 @@ import matplotlib.pyplot as pl
 import astropy.io.fits as pyfits
 import astropy.wcs as pywcs
 from datautils import *
+from lfutils import *
 
 imdir = '/Users/bjohnson/Projects/magellanic/images/'
 imnamemap = {}
@@ -43,15 +44,6 @@ def clf_errconv(clfname, sigma = 0.1):
     oo = np.argsort(smag_err)
     return smag_err[oo], sid
 
-def readclf(filename):
-    f = open(filename, 'r')
-    dat = f.readlines()[2:]
-    dat = [d.split() for d in dat]
-    data = np.array(dat).astype(float)
-    mag, num =  data[:,0], data[:,1]
-    good =  np.isfinite(num) & (num > 0)
-    mag, num = mag[good], num[good]
-    return mag, num
 
 def brightobjs(cloud, band, mlim=None, nbright=None):
     defstring = cloud_corners(cloud)
@@ -88,18 +80,6 @@ def get_stamp(imagename, ra, dec, sx=31, sy=31):
     stamps = im.ravel()[inds]
     inds = 0
     return stamps
-
-    
-def clf_to_lf(clfname, bins=None):
-    mag, num = readclf(clfname)
-    dn = -np.diff(num)
-    if bins is not None:
-        num = np.interp(bins, num, mag)
-        dn = -np.diff(num)
-        mag = bins
-        
-    return dn, mag
-
 
 def magerr_plots(sigma=0.5):
     clfname = 'results_compare/MG08/clf.lmc.irac2.tau10.dat'

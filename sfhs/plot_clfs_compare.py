@@ -10,33 +10,6 @@ rdir = 'results_compare/'
 
 icolors = {'MG08': 'blue', 'CG10': 'green', 'N2':'orange', 'N2_test':'purple', 'Basti_N2': 'magenta'}
 
-def readclf(filename):
-    f = open(filename, 'r')
-    dat = f.readlines()[2:]
-    dat = [d.split() for d in dat]
-    data = np.array(dat).astype(float)
-    return data[:,0], data[:,1]
-
-def plot_lf(base, thin=1):
-    """
-    Plot the interpolated input lfs to make sure they are ok
-    """
-    ncolors = base['lf'].shape[0]
-    cm = pl.get_cmap('gist_rainbow')
-    fig = pl.figure()
-    ax = fig.add_subplot(111)
-    ax.set_color_cycle([cm(1.*i/ncolors) for i in range(ncolors)])
-    for i,t in enumerate(base['ssp_ages']):
-        if (i % thin) == 0:
-            ax.plot(base['bins'], base['lf'][i,:], linewidth = 3,
-                    label = '{:4.2f}'.format(t), color = cm(1.*i/ncolors))
-    ax.legend(loc =0, prop = {'size':6})
-    ax.set_ylim(1e-6,3e-4)
-    ax.set_yscale('log')
-    ax.set_xlabel(r'$M_{}$'.format(wave))
-    ax.set_ylabel(r'$n(<M, t)$')
-    fig.savefig('{}.png'.format(lffile.replace('.txt','')))
-    return fig, ax
     
 def compare_total():
     
