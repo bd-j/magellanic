@@ -40,8 +40,19 @@ def write_clf(wclf, filename, lftype, colheads='N<m'):
         out.write('{0:.4f}   {1}\n'.format(m,n))
     out.close()
 
-def write_sub_clf(mag, dat, filename, lftype):
-    pass
+def write_clf_many(clf, filename, lftype, colheads='N<m'):
+    mag, dat = clf
+    dat = np.atleast_2d(dat).T
+    nrow = len(mag)
+    assert nrow == dat.shape[0]
+    ncol = dat.shape[1]
+    fstring = '{0:.4f}'+ ncol*'{}'+'\n'
+    out = open(filename,'w')
+    out.write('{0}\n mag  {1}\n'.format(lftype, colheads))
+    for m,d in zip(mag, dat):
+        out.write(fstring.format(m,*d))
+
+    out.close()
 
 def plot_ssp_lf(base, wave, lffile):
     """
