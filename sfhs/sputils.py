@@ -1,6 +1,5 @@
 import sys
 import numpy as np
-from scipy.interpolate import interp1d
 
 lsun, pc = 3.846e33, 3.085677581467192e18
 lightspeed = 2.998e18 #AA/s

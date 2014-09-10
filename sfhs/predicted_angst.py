@@ -3,19 +3,15 @@ import numpy as np
 import matplotlib.pyplot as pl
 
 import astropy.io.fits as pyfits
-from sputils import read_lfs
-import regionsed as rsed
-from lfutils import *
 import fsps
 from sedpy import observate
+import regionsed as rsed
+from lfutils import *
 from sfhutils import load_angst_sfh
 
-wlengths = {'2': '{4.5\mu m}',
-            '4': '{8\mu m}'}
 
-
-def total_galaxy_data(sfhfilename, zindex, filternames = None, basti=False,
-                     lfstring=None, agb_dust=1.0):
+def total_galaxy_data(sfhfilename, zindex, filternames = None,
+                      basti=False, lfstring=None, agb_dust=1.0):
 
     total_sfhs = load_angst_sfh(sfhfilename)
     zlist = [zindex]
@@ -84,39 +80,12 @@ if __name__ == '__main__':
     # isochrone) metallicities for a given lfst filename template
     lfst = '{0}z{{0:02.0f}}_tau{1:2.1f}_vega_irac{2}_n2_teffcut_lf.txt'
     basti = False
-    agb_dust=1.0
-    agebins = np.arange(9)*0.3 + 7.4
-    
-    #loop over clouds (and bands and agb_dust) to produce clfs
-    for cloud in ['smc']:
-        rdir = '{0}cclf_{1}_'.format(cdir, cloud)
-        for band in ['2','4']:
-            lfstring = lfst.format(ldir, agb_dust, band)
-            dat, sfhs = total_cloud_data(cloud, filternames=filters, agb_dust=agb_dust,
-                                         lfstring=lfstring, basti=basti)
-            agebins = sfhs[0]['t1'][3:-1]
-            outfile = lfstring.replace(ldir, rdir).replace('z{0:02.0f}_','').replace('.txt','.dat')
-            write_clf_many([dat['clf_mags'], dat['agb_clf']], outfile, lfstring)
-            
-            fig, ax = plot_weighted_lfs(dat, agebins = agebins, dm=dmod[cloud])
-            fig.suptitle('{0} @ IRAC{1}'.format(cloud.upper(), band))
-            fig.savefig('byage_clfs/{0}_clfs_by_age_and_Z_irac{1}'.format(cloud, band))
-            pl.close(fig)
-            
+    zindex, agb_dust = 1.0
 
-            colheads = (len(agebins)-1) * ' N<m(t={})'
-            colheads = colheads.format(*(agebins[:-1]+agebins[1:])/2.)
-            tbin_lfs = np.array([rebin_lfs(lf, ages, agebins) for lf, ages
-                                 in zip(dat['agb_clfs_zt'], dat['logages'])])
-            write_clf_many([dat['clf_mags'], tbin_lfs.sum(axis=0)],
-                           outfile.replace(cdir,'byage_clfs/'), lfstring,
-                           colheads=colheads)
-            
-        pl.figure()
-        for s, z in zip(sfhs, dat['zlist']):
-            pl.step(s['t1'], s['sfr'], where='post', label='zind={0}'.format(z), linewidth=3)
-        pl.legend(loc=0)
-        pl.title(cloud.upper())
-
-        print(cloud, dat['mstar'])
+    adir = ''
+    galaxies=[]
+    filenames = [adir + g for g in galaxies]
+    for f in filenames:
+        dat, sfhs = total_angst_data(f, zindex, filternames=filters, agb_dust=agb_dust,
+                                     lfstring=lfstring, basti=basti)
         

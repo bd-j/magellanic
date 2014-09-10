@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as pl
+from scipy.interpolate import interp1d
 
 def clf_to_lf(clfname, bins=None):
     mag, num = readclf(clfname)
@@ -108,7 +109,6 @@ def read_villaume_lfs(filename):
     luminosity_func['orig'] = [bins, lfs]
 
     return luminosity_func
-
     
 def plot_ssp_lf(base, wave, lffile):
     """
