@@ -121,9 +121,9 @@ def sum_sfhs(sfhs1, sfhs2):
     
 if __name__ == '__main__':
     
-    #filters = ['galex_NUV', 'spitzer_irac_ch1',
-    #           'spitzer_irac_ch4', 'spitzer_mips_24']
-    filters = None
+    filters = ['galex_NUV', 'spitzer_irac_ch2',
+               'spitzer_irac_ch4', 'spitzer_mips_24']
+    #filters = None
     
     ldir, cdir = 'lf_data/', 'composite_lfs/'
     outst = '{0}_n2teffcut.p'
@@ -145,10 +145,10 @@ if __name__ == '__main__':
             outfile = lfstring.replace(ldir, rdir).replace('z{0:02.0f}_','').replace('.txt','.dat')
             write_clf_many([dat['clf_mags'], dat['agb_clf']], outfile, lfstring)
             
-            fig, ax = plot_weighted_lfs(dat, agebins = agebins, dm=dmod[cloud])
-            fig.suptitle('{0} @ IRAC{1}'.format(cloud.upper(), band))
-            fig.savefig('byage_clfs/{0}_clfs_by_age_and_Z_irac{1}'.format(cloud, band))
-            pl.close(fig)
+            #fig, ax = plot_weighted_lfs(dat, agebins = agebins, dm=dmod[cloud])
+            #fig.suptitle('{0} @ IRAC{1}'.format(cloud.upper(), band))
+            #fig.savefig('byage_clfs/{0}_clfs_by_age_and_Z_irac{1}'.format(cloud, band))
+            #pl.close(fig)
             
 
             colheads = (len(agebins)-1) * ' N<m(t={})'

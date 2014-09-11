@@ -27,13 +27,17 @@ lmccols = {'RA': 'RA',
 
 rdir = '/Users/bjohnson/Projects/magellanic/sfhs/results_predicted/'
 
-def photometer(image, header, region):
+def photometer(imname, region):
+    image = pyfits.getdata(imname)
+    header = pyfits.getheader(imname)
     wcs = pywcs.WCS(header)
+    ps = np.hypot(*wcs.wcs.cd*3600.)
     yy, xx = np.indices(image.shape)
     ra, dec = wcs.wcs_pix2world(xx.flatten(), yy.flatten(), 0)
     sel = region.contains(ra.flatten(), dec.flatten())
     flux = np.nansum(image.flatten()[sel])
-    return flux
+    abmag = -2.5*np.log10((flux * 1e6*2.35e-11*ps.prod())/3631.)
+    return abmag
 
 def select(catalog, coldict, region, codes=None):
     x, y = catalog[coldict['RA']], catalog[coldict['DEC']]
