@@ -7,7 +7,16 @@ import fsps
 from sedpy import observate
 import regionsed as rsed
 from lfutils import *
-from sfhutils import load_angst_sfh
+
+angst_files = {'ddo82': '10915_DDO82_F606W_F814W.zcfullfin',
+               'ic2574': '9755_IC2574-SGS_F555W_F814W.zcfullfin',
+               'sextansA': '',
+               'ugc4305': ['10605_UGC-4305-1_F555W_F814W.zcfullfin',
+                           '10605_UGC-4305-2_F555W_F814W.zcfullfin'],
+               'ddo125': '',
+               'ngc4163': '10915_NGC4163_F606W_F814W.zcfullfin',
+               'ddo78': '10915_DDO78_F475W_F814W.zcfullfin'
+               }
 
 
 def total_galaxy_data(sfhfilename, zindex, filternames = None,
@@ -69,23 +78,50 @@ def total_galaxy_data(sfhfilename, zindex, filternames = None,
     total_values['zlist'] = zlist
     return total_values, total_sfhs
 
+def load_angst_sfh(name, sfhdir = '', skiprows = 0, fix_youngest = False):
+    """
+    Read a `match`-produced, zcombined SFH file into a numpy
+    structured array.
+
+    :param name:
+        String giving the name (and optionally the path) of the SFH
+        file.
+    :param skiprows:
+        Number of header rows in the SFH file to skip.
+    """
+    #hack to calculate skiprows on the fly
+    tmp = open(name, 'rb')
+    while len(tmp.readline().split()) < 14:
+        skiprows += 1
+    tmp.close()
+    ty = '<f8'
+    dt = np.dtype([('t1', ty), ('t2',ty), ('dmod',ty), ('sfr',ty), ('met', ty), ('mformed',ty)])
+    #fn = glob.glob("{0}*{1}*sfh".format(sfhdir,name))[0]
+    fn = name
+    data = np.loadtxt(fn, usecols = (0,1,2,3,6,12) ,dtype = dt, skiprows = skiprows)
+    if fix_youngest:
+        pass
+    return data
+
     
 if __name__ == '__main__':
     
     filters = ['galex_NUV', 'spitzer_irac_ch1',
                'spitzer_irac_ch4', 'spitzer_mips_24']
-    
+    filters = None
     ldir, cdir = 'lf_data/', 'angst_composite_lfs/'
     # total_cloud_data will loop over the appropriate (for the
     # isochrone) metallicities for a given lfst filename template
     lfst = '{0}z{{0:02.0f}}_tau{1:2.1f}_vega_irac{2}_n2_teffcut_lf.txt'
     basti = False
-    zindex, agb_dust = 1.0
+    zindex, agb_dust = 2.0, 1.0
 
-    adir = ''
-    galaxies=[]
-    filenames = [adir + g for g in galaxies]
-    for f in filenames:
+    adir = 'sfh_data/angst_ir_aper/'
+    galaxies=['ddo82','ic2574', 'ddo125','ngc4163','ddo78']
+    filenames = [adir + angst_files[g] for g in galaxies]
+    lfstrings = len(filenames) * [lfst.format(ldir, agb_dust, band)]
+    for g, f, ls in zip(galaxies, filenames, lfstrings):
+        outfile = g +'_lf.dat'
         dat, sfhs = total_angst_data(f, zindex, filternames=filters, agb_dust=agb_dust,
-                                     lfstring=lfstring, basti=basti)
-        
+                                     lfstring=ls, basti=basti)
+        write_clf_many([dat['clf_mags'], dat['agb_clf']], outfile, lfstring)
