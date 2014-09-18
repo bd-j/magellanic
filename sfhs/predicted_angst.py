@@ -3,10 +3,14 @@ import numpy as np
 import matplotlib.pyplot as pl
 
 import astropy.io.fits as pyfits
-import fsps
-from sedpy import observate
 import regionsed as rsed
 from lfutils import *
+
+try:
+    import fsps
+    from sedpy import observate
+except ImportError:
+    sps =None
 
 angst_files = {'ddo82': '10915_DDO82_F606W_F814W.zcfullfin',
                'ic2574': '9755_IC2574-SGS_F555W_F814W.zcfullfin',
@@ -116,22 +120,23 @@ if __name__ == '__main__':
     ldir, cdir = 'lf_data/', 'angst_composite_lfs/'
     # total_cloud_data will loop over the appropriate (for the
     # isochrone) metallicities for a given lfst filename template
-    lfst = '{0}z{{0:02.0f}}_tau{1:2.1f}_vega_{2}_n2_lf.txt'
+    lfst = '{0}{3}z{{0:02.0f}}_tau{1:2.1f}_vega_{2}_lf_n{4:1.0f}.txt'
     basti = False
-    zindex, agb_dust = 2, 1.0
+    zindex, agb_dust, norm = 2, 1.0, 2
 
     adir = 'sfh_data/angst_ir_aper/'
-    galaxies=['ddo78']
+    galaxies=['ddo78', 'ddo82']
     bands = ['f160mag', 'f814mag']
     fig, axes = pl.subplots( len(galaxies), len(bands))
     for i, band in enumerate(bands):
-        lfstring = lfst.format(ldir, agb_dust, band)
         for j, gal in enumerate(galaxies):
+            lfstring = lfst.format(ldir, agb_dust, band, gal.replace('ddo','dd0'), norm)
             f = adir + angst_files[gal]
-            outfile = gal +'_{}_lf.dat'.format(band)
+            outfile = '{0}_{1}_lf_n{2:1.0f}.dat'.format(gal, band, norm)
             dat, sfhs = total_galaxy_data(f, zindex, filternames=filters,
                                           agb_dust=agb_dust, lfstring=lfstring, basti=basti)
             write_clf_many([dat['clf_mags'], dat['agb_clf']], outfile, lfstring)
+            
             if len(galaxies) > 1:
                 ax = axes[j,i]
             elif len(bands) > 1:
@@ -142,6 +147,10 @@ if __name__ == '__main__':
             ax.set_ylabel(r'$N(<m)$')
             ax.set_yscale('log')
             ax.set_xlim(24,18)
-            ax.annotate(r'$N_{{tot}} = {:.0f}$'.format(np.nanmax(dat['agb_clf'])), (19, 1e2))
-            ax.set_title(gal)
+            ax.set_ylim(1e-2,1e4)
+            ax.annotate(r'$N_{{tot}} = {:.0f}$'.format(np.nanmax(dat['agb_clf'])), (19.5, 5e2))
+            ax.annotate(gal, (19.5, 3e3))
+            #ax.set_title(gal)
+    fig.suptitle('N{:1.0f}'.format(norm))
     fig.show()
+    fig.tight_layout()

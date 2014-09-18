@@ -9,16 +9,12 @@ from lfutils import *
 
 try: 
     import fsps
-except ImportError:
-    #you wont be able to predict the integrated spectrum
-    # filterlist must be set to None in calls to total_cloud_data
-    sps = None
-try:
     from sedpy import observate
 except ImportError:
-    #you won't be able to predict integrated magnitudes
-    pass
-
+    #you wont be able to predict the integrated spectrum or magnitudes
+    # filterlist must be set to None in calls to total_cloud_data
+    sps = None
+    
 wlengths = {'2': '{4.5\mu m}',
             '4': '{8\mu m}'}
 
