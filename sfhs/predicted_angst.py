@@ -22,7 +22,8 @@ angst_files = {'ddo82': '10915_DDO82_F606W_F814W.zcfullfin',
 def total_galaxy_data(sfhfilename, zindex, filternames = None,
                       basti=False, lfstring=None, agb_dust=1.0):
 
-    total_sfhs = load_angst_sfh(sfhfilename)
+    total_sfhs = [load_angst_sfh(sfhfilename)]
+    rsed.lfbins += total_sfhs[0]['dmod'][0]
     zlist = [zindex]
     
     #########
@@ -51,7 +52,7 @@ def total_galaxy_data(sfhfilename, zindex, filternames = None,
     bins = rsed.lfbins 
     if lfstring is not None:
         lffiles = [lfstring.format(z) for z in zlist]
-        lf_base = [read_lfs(f) for f in lffiles]
+        lf_base = [read_villaume_lfs(f) for f in lffiles]
         lfs_zt, lf, logages = rsed.one_region_lfs(copy.deepcopy(total_sfhs), lf_base)
     else:
         lfs_zt, lf, logages = None, None, None
@@ -69,13 +70,16 @@ def total_galaxy_data(sfhfilename, zindex, filternames = None,
     total_values = {}
     total_values['agb_clf'] = lf
     total_values['agb_clfs_zt'] = lfs_zt
-    total_values['clf_mags'] = bins
+    total_values['clf_mags'] = bins.copy()
     total_values['logages'] = logages
     total_values['sed_ab_maggies'] = maggies
     total_values['sed_filters'] = filternames
     total_values['lffile'] = lfstring
     total_values['mstar'] = mass
     total_values['zlist'] = zlist
+
+    rsed.lfbins -= total_sfhs[0]['dmod'][0]
+    
     return total_values, total_sfhs
 
 def load_angst_sfh(name, sfhdir = '', skiprows = 0, fix_youngest = False):
@@ -112,16 +116,31 @@ if __name__ == '__main__':
     ldir, cdir = 'lf_data/', 'angst_composite_lfs/'
     # total_cloud_data will loop over the appropriate (for the
     # isochrone) metallicities for a given lfst filename template
-    lfst = '{0}z{{0:02.0f}}_tau{1:2.1f}_vega_irac{2}_n2_teffcut_lf.txt'
+    lfst = '{0}z{{0:02.0f}}_tau{1:2.1f}_vega_{2}_n2_lf.txt'
     basti = False
-    zindex, agb_dust = 2.0, 1.0
+    zindex, agb_dust = 2, 1.0
 
     adir = 'sfh_data/angst_ir_aper/'
-    galaxies=['ddo82','ic2574', 'ddo125','ngc4163','ddo78']
-    filenames = [adir + angst_files[g] for g in galaxies]
-    lfstrings = len(filenames) * [lfst.format(ldir, agb_dust, band)]
-    for g, f, ls in zip(galaxies, filenames, lfstrings):
-        outfile = g +'_lf.dat'
-        dat, sfhs = total_angst_data(f, zindex, filternames=filters, agb_dust=agb_dust,
-                                     lfstring=ls, basti=basti)
-        write_clf_many([dat['clf_mags'], dat['agb_clf']], outfile, lfstring)
+    galaxies=['ddo78']
+    bands = ['f160mag', 'f814mag']
+    fig, axes = pl.subplots( len(galaxies), len(bands))
+    for i, band in enumerate(bands):
+        lfstring = lfst.format(ldir, agb_dust, band)
+        for j, gal in enumerate(galaxies):
+            f = adir + angst_files[gal]
+            outfile = gal +'{}_lf.dat'.format(band)
+            dat, sfhs = total_galaxy_data(f, zindex, filternames=filters,
+                                          agb_dust=agb_dust, lfstring=lfstring, basti=basti)
+            write_clf_many([dat['clf_mags'], dat['agb_clf']], outfile, lfstring)
+            if len(galaxies) > 1:
+                ax = axes[j,i]
+            elif len(bands) > 1:
+                ax = axes[i]
+            else: ax =axes
+            ax.plot(dat['clf_mags'], dat['agb_clf'], linewidth = 3)
+            ax.set_xlabel(band+' (Vega apparent)')
+            ax.set_ylabel(r'$N(<m)$')
+            ax.set_yscale('log')
+            ax.set_xlim(24,18)
+            ax.annotate(r'$N_{{tot}} = {:.0f}$'.format(np.nanmax(dat['agb_clf'])), (19, 1e2))
+    fig.show()

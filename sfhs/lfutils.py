@@ -87,7 +87,8 @@ def read_villaume_lfs(filename):
     
     age = np.array(age)
     minage, maxage = np.min(age)-0.05, np.max(age)+0.10
-    minl, maxl = np.min(bins)[0], np.max(bins)[0]+0.01
+    abins = [b for sbin in bins for b in sbin]
+    minl, maxl = np.min(abins), np.max(abins)+0.01
     allages = np.arange(minage, maxage, 0.05)
     mags = np.arange(minl, maxl, 0.01)
     print(minl, maxl)
