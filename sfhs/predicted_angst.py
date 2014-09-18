@@ -128,7 +128,7 @@ if __name__ == '__main__':
         lfstring = lfst.format(ldir, agb_dust, band)
         for j, gal in enumerate(galaxies):
             f = adir + angst_files[gal]
-            outfile = gal +'{}_lf.dat'.format(band)
+            outfile = gal +'_{}_lf.dat'.format(band)
             dat, sfhs = total_galaxy_data(f, zindex, filternames=filters,
                                           agb_dust=agb_dust, lfstring=lfstring, basti=basti)
             write_clf_many([dat['clf_mags'], dat['agb_clf']], outfile, lfstring)
@@ -143,4 +143,5 @@ if __name__ == '__main__':
             ax.set_yscale('log')
             ax.set_xlim(24,18)
             ax.annotate(r'$N_{{tot}} = {:.0f}$'.format(np.nanmax(dat['agb_clf'])), (19, 1e2))
+            ax.set_title(gal)
     fig.show()
