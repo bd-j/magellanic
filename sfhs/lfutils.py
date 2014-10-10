@@ -10,19 +10,21 @@ def isochrone_to_clfs(sps, bands, select_function=None):
     """
     
     filt_inds = fsps_filter_indices(bands)
-    # Generate isochrone data, and if required apply selections
+    
+    # Get isochrone data, and if required apply selections
     dat, hdr = sps.cmd()
     hdr = hdr[1:]
     if select_function is not None:
         dat = select_function(dat, hdr)
-    # Loop over bands, generatign the CLF for each band
+        
+    # Loop over bands, generatihn the CLF for each band
     clfs = []
     for ind in filt_inds:
-        clfs += [isoc_to_clf(dat, hdr, ind)]
+        clfs += [isocdata_to_clf(dat, hdr, ind)]
 
     return clfs
 
-def isoc_to_clf(isoc_dat, isoc_hdr, magindex, deltam=0.01):
+def isocdata_to_clf(isoc_dat, isoc_hdr, magindex, deltam=0.01):
     """
     :returns clf:
         A dictionary with the following key-value pairs:
@@ -45,11 +47,13 @@ def isoc_to_clf(isoc_dat, isoc_hdr, magindex, deltam=0.01):
     #  age and then interpolating onto the common magnitude grid
     logages = np.unique(isoc_dat[:, isoc_hdr.index('age')])
     lf = np.zeros([ len(logages), len(bins) ])
-    for age in logages:
+    for i,age in enumerate(logages):
         order = np.argsort(mags[isoc_age == age])
         cumwght = np.cumsum(isoc_wght[isoc_age == age][order])
+        # Append extra points to keep the CLF flat at faint mags
         x = (mags[isoc_age == age][order]).tolist() + [mags.max()]
-        y = cumweight.tolist() + [cumwght.max()]
+        y = cumwght.tolist() + [cumwght.max()]
+        # Interpolate onto common mag grid
         lf[i, :] = interp1d(x, y, fill_value = 0.0,
                             bounds_error = False)(bins)
 
