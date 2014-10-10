@@ -34,7 +34,7 @@ def total_cloud_data(cloud, filternames = None, basti=False,
     #########
     # 
     if filternames is not None:
-        sps = fsps.StellarPopulation(add_agb_dust_model = True)
+        sps = fsps.StellarPopulation(add_agb_dust_model=True)
         sps.params['sfh'] = 0
         sps.params['agb_dust'] = agb_dust
         dust = ['nodust', 'agbdust']

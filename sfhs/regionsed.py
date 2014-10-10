@@ -11,8 +11,9 @@ to_cgs = lsun/(4.0 * np.pi * (pc*10)**2 )
 
 def one_region_sed(sfhs, zmet, sps, t_lookback = 0):
     """
-    Get the spectrum of one region, given SFHs for each
-    metallicity, a stellar population object, and lf_basis
+    Get the spectrum of one region, given SFHs for each metallicity
+    and a stellar population object.  The spectrum at different
+    lookback times can also be returned.
     """
     spec = np.zeros(sps.wavelengths.shape[0])
     mstar = 0
@@ -30,7 +31,7 @@ def one_region_sed(sfhs, zmet, sps, t_lookback = 0):
         mtot = ((sfh['t2'] - sfh['t1']) * sfh['sfr']).sum()
 
         # Convert into a high resolution sfh,
-        #  with *no* intrabin sfr variations (f_burst =0)
+        #  with *no* intrabin sfr variations (f_burst=0)
         lt, sfr, fb = bsp.burst_sfh(f_burst = 0., sfh = sfh,
                                     fwhm_burst = 0.05,  contrast = 1.,
                                     bin_res = 10.)

@@ -2,6 +2,73 @@ import numpy as np
 import matplotlib.pyplot as pl
 from scipy.interpolate import interp1d
 
+def isochrone_to_clfs(sps, bands, select_function=None):
+    """
+    :returns clfs:
+        A list of dictionaries where each dictionary describes the CLF
+        for a given band.  See isoc_to_clf for the dictionary description
+    """
+    
+    filt_inds = fsps_filter_indices(bands)
+    # Generate isochrone data, and if required apply selections
+    dat, hdr = sps.cmd()
+    hdr = hdr[1:]
+    if select_function is not None:
+        dat = select_function(dat, hdr)
+    # Loop over bands, generatign the CLF for each band
+    clfs = []
+    for ind in filt_inds:
+        clfs += [isoc_to_clf(dat, hdr, ind)]
+
+    return clfs
+
+def isoc_to_clf(isoc_dat, isoc_hdr, magindex, deltam=0.01):
+    """
+    :returns clf:
+        A dictionary with the following key-value pairs:
+         ssp_ages: Log of the age for each CLF, ndarray of shape (nage,)
+         lf:       The interpolated CLFs, ndarray of shape (nage, nmag)
+         bins:     Magnitude grid for the interpolated CLFs, ndarray of
+                   shape (nmag,)
+
+    """
+
+    # Get isochrone data for this band
+    ind = isoc_hdr.index('mags') + magindex
+    mags, isoc_age = isoc_dat[:,ind], isoc_dat[:, isoc_hdr.index('age')]
+    isoc_wght = 10**isoc_dat[:, isoc_hdr.index('log(weight)')]
+    
+    # Build a homogenous magnitude grid for this band
+    bins = np.arange(mags.min(), mags[mags < 99].max()+deltam, deltam)
+    
+    # Get unique ages and loop over them, building the CLF  for each
+    #  age and then interpolating onto the common magnitude grid
+    logages = np.unique(isoc_dat[:, isoc_hdr.index('age')])
+    lf = np.zeros([ len(logages), len(bins) ])
+    for age in logages:
+        order = np.argsort(mags[isoc_age == age])
+        cumwght = np.cumsum(isoc_wght[isoc_age == age][order])
+        x = (mags[isoc_age == age][order]).tolist() + [mags.max()]
+        y = cumweight.tolist() + [cumwght.max()]
+        lf[i, :] = interp1d(x, y, fill_value = 0.0,
+                            bounds_error = False)(bins)
+
+    # Dump the results to a dictionary and return it
+    return {'ssp_ages':logages, 'bins':bins, 'lf':lf}
+
+def fsps_filter_indices(bands):
+    # Find the filter indices
+    import fsps
+    flist = fsps.list_filters()
+    findex = [flist.index(filt) for b in bands
+              for filt in fsps.find_filter(b)]
+    if len(findex) != len(bands):
+        raise ValueError("Your band names {} do not give "
+                         "a one-to-one mapping to FSPS filter "
+                         "names {}".format(bands,
+                                           [flist[i] for i in findex]))
+    return findex
+
 def clf_to_lf(clfname, bins=None):
     mag, num = readclf(clfname)
     dn = -np.diff(num)
