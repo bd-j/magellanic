@@ -5,7 +5,7 @@ import numpy as np
 import sputils as bsp
 from scipy.interpolate import interp1d
 
-lfbins = np.arange(-20, 1, 0.025)
+lfbins = np.arange(-15, 10, 0.025)
 lsun, pc = 3.846e33, 3.085677581467192e18
 to_cgs = lsun/(4.0 * np.pi * (pc*10)**2 )
 
@@ -44,7 +44,7 @@ def one_region_sed(sfhs, zmet, sps, t_lookback = 0):
     return spec, wave, mstar
 
 
-def one_region_lfs(sfhs, lf_bases, t_lookback = 0):
+def one_region_lfs(sfhs, lf_bases, t_lookback = 0, outbins = lfbins):
     """
     Get the AGB LF of one region, given a list of SFHs for each
     metallicity and a list of lf_bases for each metallicity.
@@ -56,8 +56,8 @@ def one_region_lfs(sfhs, lf_bases, t_lookback = 0):
         # ages, interpolate onto lfbins, and add to total LF
         bins, wlf = one_sfh_lfs(sfh, lf_basis, t_lookback=t_lookback)
         wlf = wlf[0,:,:] #restrict to one lookback time
-        lf8 = interp1d(bins, wlf, bounds_error=False, fill_value=0.0)
-        dat = lf8(lfbins)
+        lfinterp = interp1d(bins, wlf, bounds_error=False, fill_value=0.0)
+        dat = lfinterp(outbins)
         total_lf += dat.sum(axis=0)
         lf += [dat]
         logages += [lf_basis['ssp_ages']]

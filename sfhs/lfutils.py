@@ -4,6 +4,8 @@ from scipy.interpolate import interp1d
 
 def isochrone_to_clfs(isoc, bands, select_function=None):
     """
+    :param isoc:
+        The isochrone data and header, as returned by StellarPopulation.cmd() 
     :returns clfs:
         A list of dictionaries where each dictionary describes the CLF
         for a given band.  See isoc_to_clf for the dictionary description

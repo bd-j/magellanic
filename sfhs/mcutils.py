@@ -1,4 +1,4 @@
-import os
+import os, copy
 import numpy as np
 
 mcdir, f = os.path.split(__file__)
