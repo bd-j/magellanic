@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as pl
 from scipy.interpolate import interp1d
 
-def isochrone_to_clfs(sps, bands, select_function=None):
+def isochrone_to_clfs(isoc, bands, select_function=None):
     """
     :returns clfs:
         A list of dictionaries where each dictionary describes the CLF
@@ -12,8 +12,7 @@ def isochrone_to_clfs(sps, bands, select_function=None):
     filt_inds = fsps_filter_indices(bands)
     
     # Get isochrone data, and if required apply selections
-    dat, hdr = sps.cmd()
-    hdr = hdr[1:]
+    dat, hdr = isoc
     if select_function is not None:
         dat = select_function(dat, hdr)
         

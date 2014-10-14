@@ -74,6 +74,23 @@ def parse_locstring(locstring):
     return ra, dec
 
 
+def sum_sfhs(sfhs1, sfhs2):
+    """
+    Accumulate individual sets of SFHs into a total set of SFHs.  This
+    assumes that the individual SFH sets all have the same number and
+    order of metallicities, and the same time binning.
+    """
+    if sfhs1 is None:
+        return copy.deepcopy(sfhs2)
+    elif sfhs2 is None:
+        return copy.deepcopy(sfhs1)
+    else:
+        out = copy.deepcopy(sfhs1)
+        for s1, s2 in zip(out, sfhs2):
+            s1['sfr'] += s2['sfr']
+        return out
+
+
 # Read the Harris and Zaritsky data files ( obtained from
 #  http://djuma.as.arizona.edu/~dennis/mcsurvey/Data_Products.html )
 #  into a dictionary of SFHs.  Each key of the returned dictionary is

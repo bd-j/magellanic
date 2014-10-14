@@ -13,16 +13,11 @@ except ImportError:
     # you wont be able to predict the magnitudes
     # filterlist must be set to None in calls to total_cloud_data
 
-#Define SPS object as global
-sps = fsps.StellarPopulation(add_agb_dust_model=True)
-sps.params['sfh'] = 0
-sps.params['imf_type'] = 0.0 #salpeter
 
-def zsfh_to_obs(sfhlist, zlist, lfbands=None, select_function=None,
-                filternames=None,
-                basti=False, agb_dust=1.0):
+def zsfh_to_obs(sfhlist, zlist, lfbandnames=None, select_function=None,
+                bandnames=None, sps=None, isocs=None):
     
-    sps.params['agb_dust'] = agb_dust
+    #basti = np.any(sps.zlegend[0:2] == 0.0006) #Hack to check for Basti Isochrones
     nsfh = len(sfhlist)
     assert len(zlist) == nsfh
         
@@ -32,9 +27,13 @@ def zsfh_to_obs(sfhlist, zlist, lfbands=None, select_function=None,
     #create the SSP CLFs
     lf_base = []
     bins = rsed.lfbins
-    for zmet in zlist:
-        sps.params['zmet'] = np.abs(sps.zlegend - zmet).argmin() + 1
-        lf_base += [isochrone_to_clf(sps, lfbands, bins,
+    for i,zmet in enumerate(zlist):
+        if isocs is None:
+            sps.params['zmet'] = np.abs(sps.zlegend - zmet).argmin() + 1
+            isoc = sps.cmd()
+        else:
+            isoc = isocs[i]
+        lf_base += [isochrone_to_clf(isoc, lfbandnames, bins,
                                      select_function=select_function)]
     #use the SSP CLFs to generate a total LF
     lfs_zt, lf, logages = rsed.one_region_lfs(copy.deepcopy(total_sfhs), lf_base)
@@ -42,8 +41,8 @@ def zsfh_to_obs(sfhlist, zlist, lfbands=None, select_function=None,
     ###########
     # SED
     ############
-    if filternames is not None:
-        filterlist = observate.load_filters(filternames)
+    if bandnames is not None:
+        filterlist = observate.load_filters(bandnames)
         spec, wave, mass = rsed.one_region_sed(copy.deepcopy(total_sfhs), total_zmet, sps)
         mags = observate.getSED(wave, spec*rsed.to_cgs, filterlist=filterlist)
         maggies = 10**(-0.4 * np.atleast_1d(mags))
@@ -64,33 +63,25 @@ def zsfh_to_obs(sfhlist, zlist, lfbands=None, select_function=None,
     total_values['mstar'] = mass
     total_values['zlist'] = zlist
     return total_values, total_sfhs
-
-def sum_sfhs(sfhs1, sfhs2):
-    """
-    Accumulate individual sets of SFHs into a total set of SFHs.  This
-    assumes that the individual SFH sets all have the same number and
-    order of metallicities, and the same time binning.
-    """
-    if sfhs1 is None:
-        return copy.deepcopy(sfhs2)
-    elif sfhs2 is None:
-        return copy.deepcopy(sfhs1)
-    else:
-        out = copy.deepcopy(sfhs1)
-        for s1, s2 in zip(out, sfhs2):
-            s1['sfr'] += s2['sfr']
-        return out
     
 if __name__ == '__main__':
     
     filters = ['galex_NUV', 'spitzer_irac_ch2',
                'spitzer_irac_ch4', 'spitzer_mips_24']
     #filters = None
-    
-    basti = False
-    agb_dust=1.0
+    #Define SPS object
+    sps = fsps.StellarPopulation(add_agb_dust_model=True,
+                                 tpagb_norm_type=1)
+    sps.params['sfh'] = 0
+    sps.params['imf_type'] = 0.0 #salpeter
+    sps.params['agb_dust'] = 1.0
     agebins = np.arange(9)*0.3 + 7.4
-    
-    #loop over clouds (and bands and agb_dust) to produce clfs
-    for cloud in ['smc']:
-        sfhs = could_data(cloud)
+
+    regions = utils.smc_regions()
+    if 'header' in regions.keys():
+        rheader = regions.pop('header') #dump the header info from the reg. dict        
+    total_sfhs = None
+    for n, dat in regions.iteritems():
+        total_sfhs = sum_sfhs(total_sfhs, dat['sfhs'])
+        total_zmet = dat['zmet']
+
