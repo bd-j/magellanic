@@ -48,8 +48,8 @@ def zsfh_to_obs(sfhlist, zlist, lfbandnames=None, select_function=None,
         else:
             sps.params['zmet'] = np.abs(sps.zlegend - zmet).argmin() + 1
             isoc = sps.cmd()
-            print('Using Zmet={0} in place of requested "
-            "Zmet={1}'.format(sps.zlegend[sps.params['zmet']+1],zmet))
+            print("Using Zmet={0} in place of requested "
+            "Zmet={1}".format(sps.zlegend[sps.params['zmet']+1],zmet))
 
         ldat = isochrone_to_clfs(copy.deepcopy(isoc), lfbandnames,
                                  select_function=select_function)
