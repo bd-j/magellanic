@@ -39,7 +39,7 @@ def zsfh_to_obs(sfhlist, zlist, lfbandnames=None, select_function=None,
     #############
     # LFs
     ############
-    #create the SSP CLFs
+    #create the SSP CLFs, using nearest neighbor interpolation for the metallicity
     all_lf_base = []
     bins = rsed.lfbins
     for i,zmet in enumerate(zlist):
@@ -47,8 +47,10 @@ def zsfh_to_obs(sfhlist, zlist, lfbandnames=None, select_function=None,
             isoc = isocs[i]
         else:
             sps.params['zmet'] = np.abs(sps.zlegend - zmet).argmin() + 1
-            print(sps.params['zmet'])
             isoc = sps.cmd()
+            print('Using Zmet={0} in place of requested "
+            "Zmet={1}'.format(sps.zlegend[sps.params['zmet']+1],zmet))
+
         ldat = isochrone_to_clfs(copy.deepcopy(isoc), lfbandnames,
                                  select_function=select_function)
         all_lf_base += [ldat]
@@ -71,8 +73,7 @@ def zsfh_to_obs(sfhlist, zlist, lfbandnames=None, select_function=None,
     return sed_values, lf_values
     
 if __name__ == '__main__':
-    import mcutils
-
+    
     def select_function(isoc_dat, isoc_hdr):
         """
         Here's a function that selects certain rows from the full
@@ -87,16 +88,19 @@ if __name__ == '__main__':
                    (isoc_dat[:,pind] == 5.0)
                    )        
         return isoc_dat[select, :]
- 
-    filters = ['galex_NUV', 'spitzer_irac_ch2',
-               'spitzer_irac_ch4', 'spitzer_mips_24']
-    #filters = None
+
+    # These are the filters for integrated magnitudes of the object
+    sedfilters = ['galex_NUV', 'spitzer_irac_ch2',
+                  'spitzer_irac_ch4', 'spitzer_mips_24']
+    # These are the filters for which you want LFs
+    lffilters = ['2mass_ks','irac_2','irac_4']
 
     ########
     # Get the (smc) SFH
     ########
-    dm=18.5
-    regions = mcutils.lmc_regions()
+    import mcutils
+    dm=18.9
+    regions = mcutils.smc_regions()
     if 'header' in regions.keys():
         rheader = regions.pop('header') #dump the header info from the reg. dict        
     total_sfhs = None
@@ -117,8 +121,8 @@ if __name__ == '__main__':
 
     # Go from SFH to LFs
     sed, clfs = zsfh_to_obs(total_sfhs, total_zmet,
-                            lfbandnames = ['2mass_ks','irac_2','irac_4'],
-                            bandnames=filters, sps=sps,
+                            lfbandnames=lffilters,
+                            bandnames=sedfilters, sps=sps,
                             select_function=select_function) 
 
     pl.figure()
@@ -128,3 +132,4 @@ if __name__ == '__main__':
     pl.yscale('log')
     pl.ylim(1,1e5)
     pl.legend(loc=0)
+    pl.show()
