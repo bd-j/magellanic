@@ -4,7 +4,6 @@ import matplotlib.pyplot as pl
 
 import astropy.io.fits as pyfits
 import regionsed as rsed
-import mcutils as utils
 from lfutils import *
 import fsps
 try:
@@ -48,6 +47,7 @@ def zsfh_to_obs(sfhlist, zlist, lfbandnames=None, select_function=None,
             isoc = isocs[i]
         else:
             sps.params['zmet'] = np.abs(sps.zlegend - zmet).argmin() + 1
+            print(sps.params['zmet'])
             isoc = sps.cmd()
         ldat = isochrone_to_clfs(copy.deepcopy(isoc), lfbandnames,
                                  select_function=select_function)
@@ -71,6 +71,7 @@ def zsfh_to_obs(sfhlist, zlist, lfbandnames=None, select_function=None,
     return sed_values, lf_values
     
 if __name__ == '__main__':
+    import mcutils
 
     def select_function(isoc_dat, isoc_hdr):
         """
@@ -79,9 +80,12 @@ if __name__ == '__main__':
         involve any of the columns given by the isochrone data, including
         magnitudes (or colors) as well as things like logg, logL, etc.
         """
-        #select only objects cooler than 4000K
+        #select only objects cooler than 4000K and in tp-agb phase
         tind = isoc_hdr.index('logt')
-        select = isoc_dat[:,tind] < np.log10(4000.0)
+        pind = isoc_hdr.index('phase')
+        select = ( (isoc_dat[:,tind] < np.log10(4000.0)) &
+                   (isoc_dat[:,pind] == 5.0)
+                   )        
         return isoc_dat[select, :]
  
     filters = ['galex_NUV', 'spitzer_irac_ch2',
@@ -91,12 +95,13 @@ if __name__ == '__main__':
     ########
     # Get the (smc) SFH
     ########
-    regions = utils.smc_regions()
+    dm=18.5
+    regions = mcutils.lmc_regions()
     if 'header' in regions.keys():
         rheader = regions.pop('header') #dump the header info from the reg. dict        
     total_sfhs = None
     for n, dat in regions.iteritems():
-        total_sfhs = utils.sum_sfhs(total_sfhs, dat['sfhs'])
+        total_sfhs = mcutils.sum_sfhs(total_sfhs, dat['sfhs'])
         total_zmet = dat['zmet']
 
     #######
@@ -109,7 +114,6 @@ if __name__ == '__main__':
     sps.params['imf_type'] = 0.0 #salpeter
     sps.params['agb_dust'] = 1.0
     agebins = np.arange(9)*0.3 + 7.4
-
 
     # Go from SFH to LFs
     sed, clfs = zsfh_to_obs(total_sfhs, total_zmet,
