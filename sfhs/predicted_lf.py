@@ -49,7 +49,7 @@ def zsfh_to_obs(sfhlist, zlist, lfbandnames=None, select_function=None,
             sps.params['zmet'] = np.abs(sps.zlegend - zmet).argmin() + 1
             isoc = sps.isochrones()
             print("Using Zmet={0} in place of requested "
-            "Zmet={1}".format(sps.zlegend[sps.params['zmet']+1],zmet))
+            "Zmet={1}".format(sps.zlegend[sps.params['zmet']-1],zmet))
 
         ldat = isochrone_to_clfs(copy.deepcopy(isoc), lfbandnames,
                                  select_function=select_function)
@@ -74,7 +74,7 @@ def zsfh_to_obs(sfhlist, zlist, lfbandnames=None, select_function=None,
     
 if __name__ == '__main__':
     
-    def select_function(isoc_dat, isoc_hdr):
+    def select_function(isoc_dat):
         """
         Here's a function that selects certain rows from the full
         isochrone data and returns them.  The selection criteria can
@@ -118,7 +118,7 @@ if __name__ == '__main__':
     sps.params['agb_dust'] = 1.0
     agebins = np.arange(9)*0.3 + 7.4
 
-    # Go from SFH to LFs
+    # Go from SFH to LFs and SED
     sed, clfs = zsfh_to_obs(total_sfhs, total_zmet,
                             lfbandnames=lffilters,
                             bandnames=sedfilters, sps=sps,

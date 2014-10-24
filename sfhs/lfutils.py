@@ -19,7 +19,7 @@ def isochrone_to_clfs(isoc, bands, select_function=None):
     if select_function is not None:
         isoc = select_function(isoc)
         
-    # Loop over bands, generatihn the CLF for each band
+    # Loop over bands, generating the CLF for each band
     clfs = []
     for filt in filts:
         clfs += [isocdata_to_clf(isoc, filt)]
@@ -72,7 +72,7 @@ def fsps_filter_indices(bands):
                          "a one-to-one mapping to FSPS filter "
                          "names {}".format(bands,
                                            [flist[i] for i in findex]))
-    return flist[findex], findex
+    return [flist[i] for i in findex], findex
 
 def clf_to_lf(clfname, bins=None):
     mag, num = readclf(clfname)
