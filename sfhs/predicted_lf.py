@@ -47,7 +47,7 @@ def zsfh_to_obs(sfhlist, zlist, lfbandnames=None, select_function=None,
             isoc = isocs[i]
         else:
             sps.params['zmet'] = np.abs(sps.zlegend - zmet).argmin() + 1
-            isoc = sps.cmd()
+            isoc = sps.isochrones()
             print("Using Zmet={0} in place of requested "
             "Zmet={1}".format(sps.zlegend[sps.params['zmet']+1],zmet))
 
@@ -82,16 +82,15 @@ if __name__ == '__main__':
         magnitudes (or colors) as well as things like logg, logL, etc.
         """
         #select only objects cooler than 4000K and in tp-agb phase
-        tind = isoc_hdr.index('logt')
-        pind = isoc_hdr.index('phase')
-        select = ( (isoc_dat[:,tind] < np.log10(4000.0)) &
-                   (isoc_dat[:,pind] == 5.0)
+        select = ( (isoc_dat['logt'] < np.log10(4000.0)) &
+                   (isoc_dat['phase'] == 5.0)
                    )        
-        return isoc_dat[select, :]
+        return isoc_dat[select]
 
     # These are the filters for integrated magnitudes of the object
     sedfilters = ['galex_NUV', 'spitzer_irac_ch2',
                   'spitzer_irac_ch4', 'spitzer_mips_24']
+    sedfilters = None
     # These are the filters for which you want LFs
     lffilters = ['2mass_ks','irac_2','irac_4']
 

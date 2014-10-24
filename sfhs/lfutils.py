@@ -5,27 +5,28 @@ from scipy.interpolate import interp1d
 def isochrone_to_clfs(isoc, bands, select_function=None):
     """
     :param isoc:
-        The isochrone data and header, as returned by StellarPopulation.cmd() 
+        The isochrone data, as returned by StellarPopulation.isochrones()
+        
     :returns clfs:
         A list of dictionaries where each dictionary describes the CLF
-        for a given band.  See isoc_to_clf for the dictionary description
+        for a given band.  See isocdata_to_clf for the dictionary
+        description.
     """
     
-    filt_inds = fsps_filter_indices(bands)
+    filts, filt_inds = fsps_filter_indices(bands)
     
-    # Get isochrone data, and if required apply selections
-    dat, hdr = isoc
+    # If required apply selections
     if select_function is not None:
-        dat = select_function(dat, hdr)
+        isoc = select_function(isoc)
         
     # Loop over bands, generatihn the CLF for each band
     clfs = []
-    for ind in filt_inds:
-        clfs += [isocdata_to_clf(dat, hdr, ind)]
+    for filt in filts:
+        clfs += [isocdata_to_clf(isoc, filt)]
 
     return clfs
 
-def isocdata_to_clf(isoc_dat, isoc_hdr, magindex, deltam=0.01):
+def isocdata_to_clf(isoc_dat, band, deltam=0.01):
     """
     :returns clf:
         A dictionary with the following key-value pairs:
@@ -37,16 +38,15 @@ def isocdata_to_clf(isoc_dat, isoc_hdr, magindex, deltam=0.01):
     """
 
     # Get isochrone data for this band
-    ind = isoc_hdr.index('mags') + magindex
-    mags, isoc_age = isoc_dat[:,ind], isoc_dat[:, isoc_hdr.index('age')]
-    isoc_wght = 10**isoc_dat[:, isoc_hdr.index('log(weight)')]
+    mags, isoc_age = isoc_dat[band], isoc_dat['age']
+    isoc_wght = 10**isoc_dat['log(weight)']
     
     # Build a homogenous magnitude grid for this band
     bins = np.arange(mags.min(), mags[mags < 99].max()+deltam, deltam)
     
     # Get unique ages and loop over them, building the CLF  for each
     #  age and then interpolating onto the common magnitude grid
-    logages = np.unique(isoc_dat[:, isoc_hdr.index('age')])
+    logages = np.unique(isoc_dat['age'])
     lf = np.zeros([ len(logages), len(bins) ])
     for i,age in enumerate(logages):
         order = np.argsort(mags[isoc_age == age])
@@ -59,7 +59,7 @@ def isocdata_to_clf(isoc_dat, isoc_hdr, magindex, deltam=0.01):
                             bounds_error = False)(bins)
 
     # Dump the results to a dictionary and return it
-    return {'ssp_ages':logages, 'bins':bins, 'lf':lf}
+    return {'ssp_ages':logages, 'bins':bins, 'lf':lf, 'band':band}
 
 def fsps_filter_indices(bands):
     # Find the filter indices
@@ -72,7 +72,7 @@ def fsps_filter_indices(bands):
                          "a one-to-one mapping to FSPS filter "
                          "names {}".format(bands,
                                            [flist[i] for i in findex]))
-    return findex
+    return flist[findex], findex
 
 def clf_to_lf(clfname, bins=None):
     mag, num = readclf(clfname)
