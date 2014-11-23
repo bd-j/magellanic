@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as pl
 
 import starfitter as sf
-import extinction, observate
+from sedpy import extinction, observate
 import plotter
 import catio
 

@@ -84,7 +84,8 @@ if __name__ == '__main__':
         #select only objects cooler than 4000K and in tp-agb phase
         select = ( (isoc_dat['logt'] < np.log10(4000.0)) &
                    (isoc_dat['phase'] == 5.0)
-                   )        
+                   )
+        print(select.sum())
         return isoc_dat[select]
 
     # These are the filters for integrated magnitudes of the object
