@@ -1,26 +1,8 @@
 import numpy as np
-import astropy.io.fits as pyfits
 import mcutils
+from sedpy import ds9region as ds9
 
-catname = '/Users/bjohnson/Projects/magellanic/catalog/boyer11_smc.fits'
-rafield, decfield = 'RAJ200', 'DEJ2000'
-
-def main():
-    catalog = pyfits.getdata(catname)
-    regions = utils.smc_regions()
-    
-    for name, dat in regions.iteritems():
-        defstring = corners_of_region(name, dat['loc'], cloud, string=True)
-        ds9reg = ds9.Polygon(defstring)
-        this = select(catalog, ds9reg, codes=codes)
-        
-
-def select(catalog, region):
-    sel = region.contains(catalog[rafield], catalog[defield])
-    sel = sel & (catalog['Class'] != 'RSG') & (catalog['Class'] != 'RGB')
-    return sel
-
-def corners_of_region(regname, regloc, cloud, string=False):
+def corners_of_region(regname, cloud, string=False):
     """
     Use a defnition of the grid worked out from figure 3 of H & Z
     2004.  The idea is that the given central coordinates are not
@@ -28,11 +10,12 @@ def corners_of_region(regname, regloc, cloud, string=False):
     and Dec
     """
     #get the astrometry
-    crpix, crval, cd, [nx, ny] = regutils.mc_ast(cloud)
+    crpix, crval, cd, [nx, ny] = mcutils.mc_ast(cloud)
     rcorners = np.array([0,0,1,1]) * cd[0]
     dcorners = np.array([0,1,1,0]) * cd[1]
     #get the pixel values
-    x, y = regutils.regname_to_xy(regname, cloud)
+    x, y = mcutils.regname_to_xy(regname, cloud)
+    x, y = np.array(x), np.array(y)
     ra = (x-crpix[0])*cd[0] + crval[0]
     dec = (y-crpix[1])*cd[1] + crval[1]
     sz = np.size(ra)
@@ -44,9 +27,27 @@ def corners_of_region(regname, regloc, cloud, string=False):
         dc = dec + dcorners
 
     if string:
-        pass
-        
-    
+        tmp = ','.join([ str(val) for pair in zip(rc, dc) for val in pair])
+        return 'polygon', tmp
+    return 'polygon', rc, dc
+
+def make_ds9(cloud, out=None):
+    if out is None:
+        out = '{0}_regions_grid.reg'.format(cloud)
+    out = open(out,'w')
+    if cloud.lower() is 'lmc':
+        regions = mcutils.lmc_regions()
+    else:
+        regions = mcutils.smc_regions()
+    regions.pop('header')
+    for name, dat in regions.iteritems():
+        shape, defstring = corners_of_region(name, cloud, string=True)
+        ds9reg = ds9.Polygon(defstring)
+        ds9reg.print_to(fileobj=out, color='red', label=name)
+    out.close()
+
+
+
 def hz_corners_of_region(regname, regions, cloud):
     """
     Try to generate regions using the Harris and Zaritsky scheme.
@@ -61,8 +62,4 @@ def hz_corners_of_region(regname, regions, cloud):
     and results in variable region shapes due to roundoff errors in
     the central coordinates.
     """
-
-if __name__ == '__main__':
-    main()
- 
-
+    raise(NotImplementedError)
