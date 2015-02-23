@@ -65,6 +65,34 @@ def mc_ast(cloud):
         cdelt = [0.5/11 * 15., 12./60.]
     return crpix, crval, cdelt, [nx, ny]#, regions
 
+def corners_of_region(regname, cloud, string=False):
+    """
+    Use a defnition of the grid worked out from figure 3 of H & Z
+    2004.  The idea is that the given central coordinates are not
+    precise enough, but that the finest grid size is constant in Ra
+    and Dec
+    """
+    #get the astrometry
+    crpix, crval, cd, [nx, ny] = mc_ast(cloud)
+    rcorners = np.array([0,0,1,1]) * cd[0]
+    dcorners = np.array([0,1,1,0]) * cd[1]
+    #get the pixel values
+    x, y = regname_to_xy(regname, cloud)
+    x, y = np.array(x), np.array(y)
+    ra = (x-crpix[0])*cd[0] + crval[0]
+    dec = (y-crpix[1])*cd[1] + crval[1]
+    sz = np.size(ra)
+    if sz > 1:
+        rc = ra[0] + rcorners * np.sqrt(sz)
+        dc = dec[0] + dcorners * np.sqrt(sz)
+    elif sz == 1:
+        rc = ra + rcorners
+        dc = dec + dcorners
+
+    if string:
+        tmp = ','.join([ str(val) for pair in zip(rc, dc) for val in pair])
+        return 'polygon', tmp
+    return 'polygon', rc, dc
 
 def parse_locstring(locstring):
     loc = locstring.split()    
