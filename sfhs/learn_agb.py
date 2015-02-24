@@ -1,5 +1,7 @@
 import numpy as np
+import matplotlib.pyplot as pl
 import hmc
+import mcutils
 
 #theta = np.zeros(nage)
 
@@ -57,7 +59,6 @@ def load_data(cloud):
         ndarray giving number of stars observed in each region, of
         shape (nreg)
     """
-    import mcutils
     import datautils
     import sedpy.ds9region as ds9
 
@@ -83,14 +84,18 @@ def load_data(cloud):
         for s in dat['sfhs']:
             total_sfh = mcutils.sum_sfhs(total_sfh, s)
         mass += [ total_sfh['sfr'] * (10**total_sfh['t2'] - 10**total_sfh['t1']) ]
-        
-    return regions.keys(), np.array(mass).T, np.array(N)
+
+    example_sfh = total_sfh
+    
+    return regions.keys(), np.array(mass).T, np.array(N), example_sfh
 
 if __name__ == "__main__":
 
-    cloud = 'smc'
-    rname, mass, N = load_data(cloud)
+    cloud = 'lmc'
+    rname, mass, N, esfh = load_data(cloud)
     nage, nreg = mass.shape
+    time = (esfh['t1'] + esfh['t2'])/2
+    
     print('loaded data')
     
     model = LinearModel(mass, N)
@@ -132,4 +137,28 @@ if __name__ == "__main__":
     hsampler.sample(hsampler.chain[-1,:], model, iterations=10000, length=100,
                     epsilon=eps, store_trajectories=True)
 
-    
+
+    ptiles = np.percentile(hsampler.chain, [16, 50, 84], axis=0)
+    median, minus, plus = ptiles[1,:], ptiles[1,:] - ptiles[0,:], ptiles[2,:] - ptiles[1,:]
+    efig, eaxes = pl.subplots()
+    eaxes.errorbar(time, median,
+                   yerr=np.vstack([minus, plus]),
+                   color='blue', marker='o', mew=0.)
+    eaxes.set_xlabel(r'$\log \, t_j ($yrs$)$')
+    eaxes.set_ylabel(r'$\theta_j \, (AGB \#/M_\odot) \, ($specific frequency$)$')
+    eaxes.set_title(cloud.upper())
+
+    clr = 'darkcyan'
+    bfig, baxes = pl.subplots()
+    bp = baxes.boxplot(hsampler.chain,  labels = [str(t) for t in time],
+                       whis=[16, 84], widths=0.9,
+                       boxprops = {'alpha': 0.3, 'color':clr},
+                       whiskerprops = {'linestyle':'-', 'linewidth':2, 'color':'black'},
+                       showcaps=False, showfliers=False, patch_artist=True)
+    baxes.set_xlabel(r'$\log \, t_j ($yrs$)$', labelpad=15)
+    baxes.set_ylabel(r'$\theta_j \, (AGB \#/M_\odot) \, ($specific frequency$)$')
+    baxes.set_title(cloud.upper())
+
+    bfig.show()
+    efig.show()
+    bfig.savefig('{0}_theta.pdf'.format(cloud.lower()))
