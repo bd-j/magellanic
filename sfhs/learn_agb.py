@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as pl
-import hmc
+import hmc, triangle
 import mcutils
 
 #theta = np.zeros(nage)
@@ -47,7 +47,7 @@ class LinearModel(object):
             #print('theta_out ={0}'.format(theta))
         return theta, sign, oob
 
-def load_data(cloud):
+def load_data(cloud, agbtype=None):
     """
     :returns name:
         list of length (nreg,)
@@ -71,30 +71,51 @@ def load_data(cloud):
 
     #AGB data
     cat, cols = datautils.cloud_cat(cloud)
+    agbcat = datautils.select(cat, cols, codes=cols['agb_codes'])
+    agbregion = ds9.Polygon(datautils.bounding_hull(agbcat, cols)[0])
+    
+    if agbtype is None:
+        codes = cols['agb_codes']
+    else:
+        codes = [code for code in cols['agb_codes']
+                 if agbtype(code)]
     
     #mass = np.zeros([nage, nreg])
     #N = np.zeros(nreg)
-    mass, N = [], []
+    mass, N, names = [], [], []
     for name, dat in regions.iteritems():
         shape, defstring = mcutils.corners_of_region(name, cloud, string=True)
-        ds9reg = ds9.Polygon(defstring)
-        acat = datautils.select(cat, cols, ds9reg, codes=cols['agb_codes'])
+        reg = ds9.Polygon(defstring)
+        if not np.all(agbregion.contains(reg.ra, reg.dec)):
+            continue
+        acat = datautils.select(agbcat, cols, region=reg, codes=codes)
         N.append( len(acat) )
         total_sfh = None
         for s in dat['sfhs']:
             total_sfh = mcutils.sum_sfhs(total_sfh, s)
         mass += [ total_sfh['sfr'] * (10**total_sfh['t2'] - 10**total_sfh['t1']) ]
-
+        names.append(name)
+        
     example_sfh = total_sfh
     
-    return regions.keys(), np.array(mass).T, np.array(N), example_sfh
+    return names, np.array(mass).T, np.array(N), example_sfh
 
 if __name__ == "__main__":
 
     cloud = 'lmc'
-    rname, mass, N, esfh = load_data(cloud)
+    agbsel = lambda x: x[-1] == 'O'
+    #agbsel = lambda x: 'X' in x
+    #agbsel = None
+    rname, mass, N, esfh = load_data(cloud, agbtype=agbsel)
+    time = (esfh['t1'] + esfh['t2']) / 2
     nage, nreg = mass.shape
-    time = (esfh['t1'] + esfh['t2'])/2
+    
+    baseline = np.zeros(nreg) + mass.sum()/nreg/nage
+    mass = np.concatenate([mass, baseline[None, :]])
+    #np.random.shuffle(N)
+    time = np.array(time.tolist()+[time[-1]])
+
+    nage, nreg = mass.shape
     
     print('loaded data')
     
@@ -103,13 +124,13 @@ if __name__ == "__main__":
     # Initial guess is that all age bins contribute equally
     initial = N.sum()/mass.sum()/nage
     initial = np.zeros(nage) +initial
-
+    #initial[-1] = N.sum()/nreg/2.
     # Do some L-BFGS-B minimization?
     
     # HMC sampling
 
-    nsegmax = 10
-    iterations = 50
+    nsegmax = 20
+    iterations = 100
     length = 100
     alleps=[]
     
@@ -140,6 +161,8 @@ if __name__ == "__main__":
 
     ptiles = np.percentile(hsampler.chain, [16, 50, 84], axis=0)
     median, minus, plus = ptiles[1,:], ptiles[1,:] - ptiles[0,:], ptiles[2,:] - ptiles[1,:]
+    maxapost = hsampler.lnprob.argmax()
+
     efig, eaxes = pl.subplots()
     eaxes.errorbar(time, median,
                    yerr=np.vstack([minus, plus]),
@@ -147,9 +170,10 @@ if __name__ == "__main__":
     eaxes.set_xlabel(r'$\log \, t_j ($yrs$)$')
     eaxes.set_ylabel(r'$\theta_j \, (AGB \#/M_\odot) \, ($specific frequency$)$')
     eaxes.set_title(cloud.upper())
+    #eaxes.plot(time, hsampler.chain[maxapost, :], '-o', color='red')
 
     clr = 'darkcyan'
-    bfig, baxes = pl.subplots()
+    bfig, baxes = pl.subplots(figsize=(12,7))
     bp = baxes.boxplot(hsampler.chain,  labels = [str(t) for t in time],
                        whis=[16, 84], widths=0.9,
                        boxprops = {'alpha': 0.3, 'color':clr},
@@ -159,6 +183,8 @@ if __name__ == "__main__":
     baxes.set_ylabel(r'$\theta_j \, (AGB \#/M_\odot) \, ($specific frequency$)$')
     baxes.set_title(cloud.upper())
 
+    
+    
     bfig.show()
     efig.show()
     bfig.savefig('{0}_theta.pdf'.format(cloud.lower()))

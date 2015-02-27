@@ -18,7 +18,7 @@ def plot_magerrs():
     fig, axes = pl.subplots(2,2)
     # Get the observed CLFs
     for i,cloud in enumerate(clouds):
-        defstring = cloud_corners(cloud)
+        defstring = mcps_corners(cloud)
         region = ds9reg.Polygon(defstring)
         cat, cols = cloud_cat(cloud)
         subcat = select(cat, cols, region, codes=cols['agb_codes'])
@@ -46,7 +46,7 @@ def clf_errconv(clfname, sigma = 0.1):
 
 
 def brightobjs(cloud, band, mlim=None, nbright=None):
-    defstring = cloud_corners(cloud)
+    defstring = mcps_corners(cloud)
     region = ds9reg.Polygon(defstring)
     cat, cols = cloud_cat(cloud)
     subcat = select(cat, cols, region, codes=cols['agb_codes'])

@@ -13,7 +13,8 @@ smccols = {'RA': 'RAJ2000',
            'IRAC4_err': 'e__8_0_',
            'IRAC2_err': 'e__4_5_',
            'STARTYPE': 'Class',
-           'agb_codes': ['C-AGB', 'O-AGB', 'x-AGB', 'aO-AGB','FIR']
+           'agb_codes': ['C-AGB', 'O-AGB', 'x-AGB', 'aO-AGB','FIR'],
+           'corners': ''
           }
 lmccols = {'RA': 'RA',
            'DEC': 'DEC',
@@ -22,7 +23,8 @@ lmccols = {'RA': 'RA',
            'IRAC4_err': 'DIRAC4',
            'IRAC2_err': 'DIRAC2',
            'STARTYPE': 'FLAG',
-           'agb_codes': ['C', 'O', 'X', 'aO/C', 'aO/O', 'RS-C', 'RS-O', 'RS-X', 'RS-a']
+           'agb_codes': ['C', 'O', 'X', 'aO/C', 'aO/O', 'RS-C', 'RS-O', 'RS-X', 'RS-a'],
+           'corners': ''
            }
 
 rdir = '/Users/bjohnson/Projects/magellanic/sfhs/results_predicted/'
@@ -39,9 +41,12 @@ def photometer(imname, region):
     abmag = -2.5*np.log10((flux * 1e6*2.35e-11*ps.prod())/3631.)
     return abmag
 
-def select(catalog, coldict, region, codes=None):
+def select(catalog, coldict, region=None, codes=None):
     x, y = catalog[coldict['RA']], catalog[coldict['DEC']]
-    sel = region.contains(x, y)
+    if region is None:
+        sel = np.ones(len(catalog), dtype=bool)
+    else:
+        sel = region.contains(x, y)
     if codes is not None:
         typesel = False
         for c in codes:
@@ -49,7 +54,20 @@ def select(catalog, coldict, region, codes=None):
         sel = sel & typesel
     return catalog[sel]
 
+def bounding_hull(catalog, coldict):
+    """Compute the convex hull for a catalog and return a string of
+    the coordinates of the vertices, as well as a two element list of
+    arrays of the RAs and Decs of the vertices.
+    """
+    from scipy.spatial import ConvexHull
+    points = np.array([catalog[coldict[f]] for f in ['RA','DEC']]).T
+    hull = ConvexHull(points)
+    v =  points[hull.vertices,0], points[hull.vertices,1]
+    #v = [ np.concatenate((v[i], np.array([v[i][0]]))) for i in [0,1] ]
     
+    corners = ','.join([str(val) for pair in zip(v[0], v[1]) for val in pair])
+    return corners, v
+
 def cumulative_obs_lf(catalog, bandname):
     mag = catalog[bandname]
     mag = mag[np.isfinite(mag)]
@@ -57,7 +75,7 @@ def cumulative_obs_lf(catalog, bandname):
     return mag[order], np.arange(len(mag))
 
 
-def cloud_corners(cloud):
+def mcps_corners(cloud):
     """
     Return strings defining vertices of the polygon enclosing the MCPS
     survey.  These are very approximate.
@@ -87,7 +105,7 @@ if __name__ == '__main__':
 
         bands = ['IRAC2', 'IRAC4']
         # Get the observed CLFs
-        defstring = cloud_corners(cloud)
+        defstring = mcps_corners(cloud)
         region = ds9reg.Polygon(defstring)
         cat, cols = cloud_cat(cloud)
         subcat = select(cat, cols, region, codes=cols['agb_codes'])
