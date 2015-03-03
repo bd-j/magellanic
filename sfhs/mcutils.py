@@ -27,7 +27,7 @@ def regname_to_xy(regname, cloud='smc'):
     Map region names to image pixels, accounting for the coadded
     pixels in the LMC regions.
     """
-    n = regname
+    n = copy.deepcopy(regname)
     a = ord('A')
     x, y = ord(n[0]) - a, ord(n[1]) - a 
     if cloud.lower() == 'smc':
