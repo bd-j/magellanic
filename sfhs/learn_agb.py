@@ -1,6 +1,8 @@
 import numpy as np
+import matplotlib
+#matplotlib.use('Tkagg')
 import matplotlib.pyplot as pl
-import sys, pickle, hmc, triangle
+import sys, pickle, hmc
 import mcutils
 
 #theta = np.zeros(nage)
@@ -70,7 +72,7 @@ def load_data(cloud, agbtype=None):
         print('doing lmc')
         regions = mcutils.lmc_regions()
     else:
-        print('doing lmc')
+        print('doing smc')
         regions = mcutils.smc_regions()
     regions.pop('header')
 
@@ -130,6 +132,7 @@ if __name__ == "__main__":
     # Initial guess is that all age bins contribute equally
     initial = N.sum()/mass.sum()/nage
     initial = np.zeros(nage) +initial
+    initial = initial * np.random.uniform(1,0.001, size=len(initial))
     #initial[-1] = N.sum()/nreg/2.
     # Do some L-BFGS-B minimization?
     
@@ -161,7 +164,7 @@ if __name__ == "__main__":
                                              store_trajectories=False, nadapt=0)
     alleps.append(thiseps) #this should not have actually changed during the sampling
 
-    hsampler.sample(hsampler.chain[-1,:], model, iterations=10000, length=100,
+    hsampler.sample(hsampler.chain[-1,:], model, iterations=5000, length=100,
                     epsilon=eps, store_trajectories=True)
     
     ptiles = np.percentile(hsampler.chain, [16, 50, 84], axis=0)
@@ -190,7 +193,29 @@ if __name__ == "__main__":
     baxes.set_title(cloud.upper()+extralabel)
     bfig.show()
     bfig.savefig('{0}{1}_theta.pdf'.format(cloud.lower(), extralabel) )
-    ouput = {'chain':hsampler.chain,
-             'lnprob':hsampler.lnprob}
+    output = {'chain':hsampler.chain,
+             'lnprob':hsampler.lnprob,
+             'time':time,
+             'esfh':esfh,
+             'cloud':cloud,
+             'mass':mass,
+             'N': N}
+
+    #tfig = triangle.corner(hsampler.chain)
     with open('{0}{1}_chain.p'.format(cloud.lower(), extralabel), 'wb') as f:
         pickle.dump(output, f)
+
+    try:
+        import pandas as pd
+        import seaborn as sns
+        chain = hsampler.chain[:,:5]
+        chain = pd.DataFrame(chain,
+                             columns=[str(i) for i in range(chain.shape[1])])
+        g = sns.PairGrid(chain)
+        g.map_lower(sns.kdeplot, cmap="Blues_d", bw='silverman',legend=False)
+        g.map_diag(pl.hist, lw=3, legend=False)
+        g.fig.set_figwidth(30)
+        g.fig.set_figheight(30)
+        g.savefig('{0}{1}_corner.pdf'.format(cloud.lower(), extralabel) )
+    except(ImportError):
+        pass
