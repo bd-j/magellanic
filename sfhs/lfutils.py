@@ -5,7 +5,8 @@ from scipy.interpolate import interp1d
 def isochrone_to_clfs(isoc, bands, select_function=None):
     """
     :param isoc:
-        The isochrone data, as returned by StellarPopulation.isochrones()
+        The isochrone data, as returned by
+        StellarPopulation.isochrones()
         
     :returns clfs:
         A list of dictionaries where each dictionary describes the CLF
@@ -60,6 +61,34 @@ def isocdata_to_clf(isoc_dat, band, deltam=0.01):
 
     # Dump the results to a dictionary and return it
     return {'ssp_ages':logages, 'bins':bins, 'lf':lf, 'band':band}
+
+def isocdata_to_cmd(isoc_dat, color, mag):
+    """Make a CMD from isochrone data.
+
+    :param isoc_data:
+        The isochrone data, as returned by
+        StellarPopulation.isochrones().  It should be prefiltered by
+        age and perhaps stellar type (phase).
+
+    :param color:
+        A tuple giving the bandnames and bin edges for the color.  It
+        should have the form ``('band1', 'band2', bins)`` where
+        ``bins`` is ndarray of bin edges and ``'band1'`` and
+        ``'band2'`` are the names of the FSPS filters that form color
+        'band1-band2'.
+        
+    :param mag:
+        A tuple of absolute magnitude bins of the form ``('band',bins)``
+        where bins is an ndarray of bin edges and `band' is the filter.
+
+    :returns cmd:
+        A 2-d numpy array giving the color magnitude diagram
+    """
+    c = isoc_dat[color[0]] - isoc_dat[color[1]]
+    m = isoc_dat[mag[0]]
+    cmd = np.histogram2d(c, m, bins=[color[2], mag[1]],
+                         weights=10**isoc_dat['log(weight)'])
+    return cmd
 
 def fsps_filter_indices(bands):
     # Find the filter indices
