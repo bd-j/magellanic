@@ -35,7 +35,7 @@ def make_ds9(cloud, out=None):
     if out is None:
         out = '{0}_regions_grid.reg'.format(cloud)
     out = open(out,'w')
-    if cloud.lower() is 'lmc':
+    if cloud.lower() == 'lmc':
         regions = mcutils.lmc_regions()
     else:
         regions = mcutils.smc_regions()
