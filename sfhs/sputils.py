@@ -7,7 +7,7 @@ lightspeed = 2.998e18 #AA/s
 to_cgs = lsun/(4.0 * np.pi * (pc*10)**2 )
 
 def burst_sfh(fwhm_burst=0.05, f_burst=0.5, contrast=5,
-              sfh=None, bin_res=10.):
+              sfh=None, bin_res=20., **extras):
     """
     Given a binned SFH as a numpy structured array, and burst
     parameters, generate a realization of the SFH at high temporal
@@ -49,8 +49,10 @@ def burst_sfh(fwhm_burst=0.05, f_burst=0.5, contrast=5,
     """
     a, tburst, A, sigma, f_burst_actual = [],[],[],[],[]
     for i,abin in enumerate(sfh):
-        res = convert_burst_pars(fwhm_burst = fwhm_burst, f_burst = f_burst, contrast = contrast,
-                             bin_width = (abin['t2']-abin['t1']), bin_sfr = abin['sfr'])
+        res = convert_burst_pars(fwhm_burst=fwhm_burst, f_burst=f_burst,
+                                 contrast=contrast,
+                                 bin_width=(abin['t2']-abin['t1']),
+                                 bin_sfr=abin['sfr'])
         a += [res[0]]
         if len(res[1]) > 0:
             tburst += (res[1] + abin['t1']).tolist()
@@ -71,7 +73,7 @@ def burst_sfh(fwhm_burst=0.05, f_burst=0.5, contrast=5,
     
     return times, sfr, f_burst_actual
 
-def bursty_sps(lookback_time, lt, sfr, sps):
+def bursty_sps(lookback_time, lt, sfr, sps, **extras):
     """
     Obtain the spectrum of a stellar poluation with arbitrary complex
     SFH at a given lookback time.  The SFH is provided in terms of SFR
@@ -114,14 +116,14 @@ def bursty_sps(lookback_time, lt, sfr, sps):
     ssp_ages = 10**sps.ssp_ages #in yrs
     target_lt = np.atleast_1d(lookback_time)
     
-    aw = sfh_weights(lt, sfr, ssp_ages, lookback_time=target_lt)
+    aw = sfh_weights(lt, sfr, ssp_ages, lookback_time=target_lt, **extras)
     int_spec = (spec[None,:,:] * aw[:,:,None]).sum(axis=1)
     mstar = (mass[None,:] * aw).sum(axis=-1)
     
     return wave, int_spec, aw, mstar
 
 
-def bursty_lf(lookback_time, lt, sfr, sps_lf):
+def bursty_lf(lookback_time, lt, sfr, sps_lf, **extras):
     """
     Obtain the luminosity function of stars for an arbitrary complex
     SFH at a given lookback time.  The SFH is provided in terms of SFR
@@ -155,13 +157,13 @@ def bursty_lf(lookback_time, lt, sfr, sps_lf):
     """
     bins, lf, ssp_ages = sps_lf['bins'], sps_lf['lf'], 10**sps_lf['ssp_ages']
     target_lt = np.atleast_1d(lookback_time)
-    aw = sfh_weights(lt, sfr, ssp_ages, lookback_time=target_lt)
+    aw = sfh_weights(lt, sfr, ssp_ages, lookback_time=target_lt, **extras)
     int_lf = (lf[None,:,:] * aw[:,:,None]).sum(axis=1)
     
     return bins, int_lf, aw
 
 
-def sfh_weights(lt, sfr, ssp_ages, lookback_time=0):
+def sfh_weights(lt, sfr, ssp_ages, lookback_time=0, **extras):
     """        
     :param lt: ndarray, shape (ntime)
         The lookback time sequence of the provided SFH.  Assumed to
@@ -187,11 +189,23 @@ def sfh_weights(lt, sfr, ssp_ages, lookback_time=0):
     aw = np.zeros( [ len(target_lt), len(ssp_ages) ] )
     for i,tl in enumerate(target_lt):
         valid = (lt >= tl) #only consider time points in the past of this lookback time.
-        inds, weights = weights_1DLinear(np.log(ssp_ages), np.log(lt[valid] - tl))
-        #aggregate the weights for each ssp time index, after accounting for SFR
+        #augment the t_lookback array of the SFH with the SSP ages
+        sfr_ssp = np.interp(ssp_ages, lt-tl, sfr, left=0.0, right=0.0)
+        tmp_t = np.concatenate([ssp_ages, lt[valid]-tl])
+        tmp_sfr = np.concatenate([sfr_ssp, sfr[valid]])
+        #sort the augmented array by age
+        order = tmp_t.argsort()
+        tmp_t = tmp_t[order]
+        tmp_sfr = tmp_sfr[order]
+        # get weights to interpolate the log_t array
+        inds, weights = weights_1DLinear(ssp_ages, tmp_t, **extras)
+        # aggregate the weights for each ssp time index, after
+        # accounting for SFR *dt
+        tmp_dt = np.gradient(tmp_t)
         agg_weights = np.bincount( inds.flatten(),
-                                   weights = (weights * sfr[valid,None]).flatten(),
-                                   minlength = len(ssp_ages) ) * dt
+                                   weights = (weights * tmp_sfr[:, None] *
+                                              tmp_dt[:, None]).flatten(),
+                                   minlength = len(ssp_ages) )
         aw[i,:] = agg_weights
     return aw
 
@@ -295,7 +309,9 @@ def convert_burst_pars(fwhm_burst = 0.05, f_burst=0.5, contrast=5,
 
 
 
-def weights_1DLinear(model_points, target_points, extrapolate = False):
+def weights_1DLinear(model_points, target_points,
+                     extrapolate = False, left=0., right=0.,
+                     **extras):
     """
     The interpolation weights are determined from 1D linear
     interpolation.
@@ -333,9 +349,9 @@ def weights_1DLinear(model_points, target_points, extrapolate = False):
         lo[above_scale] = hi[above_scale] #set the indices to be indentical in these cases
         hi[below_scale] = lo[below_scale]
         w_lo[above_scale] = 0 #make the combined weights sum to one
-        w_hi[above_scale] = 1
+        w_hi[above_scale] = left
         w_hi[below_scale] = 0
-        w_lo[below_scale] = 1
+        w_lo[below_scale] = right
 
     inds = np.vstack([lo,hi]).T
     weights = np.vstack([w_lo, w_hi]).T

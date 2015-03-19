@@ -89,7 +89,8 @@ def one_sfh_lfs(sfh, lf_basis, t_lookback = 0):
                                 bin_res = 20.)
 
     # Get the weights for each age and muliply by the LFs
-    aw = bsp.sfh_weights(lt, sfr, ssp_ages, np.atleast_1d(t_lookback))
+    aw = bsp.sfh_weights(lt, sfr, ssp_ages, np.atleast_1d(t_lookback),
+                         left=0, right=0)
     weighted_lfs = (lf[None,:,:] * aw[:,:,None])
         
     return bins, weighted_lfs

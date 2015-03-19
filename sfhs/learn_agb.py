@@ -117,12 +117,18 @@ if __name__ == "__main__":
     time = (esfh['t1'] + esfh['t2']) / 2
     nage, nreg = mass.shape
 
+    fmt = '{:8s} {:7.0f}   ' + nage * ' {:<8.1f}'+'\n'
+    with open('{0}{1}_data.dat'.format(cloud.lower(),extralabel),'w') as f:
+        f.write('Region     N_agb   '+'  '.join(['m_{}'.format(i) for i in range(nage)])+ '\n')
+        for i,rn in enumerate(rname):
+            f.write(fmt.format(rn, N[i], *mass[:,i]))
     #Add a constant offset term
-    baseline = np.zeros(nreg) + mass.sum()/nreg/nage
-    mass = np.concatenate([mass, baseline[None, :]])
+    #baseline = np.zeros(nreg) + mass.sum()/nreg/nage
+    #mass = np.concatenate([mass, baseline[None, :]])
     #np.random.shuffle(N)
-    time = np.array(time.tolist()+[time[-1]])
-
+    #time = np.array(time.tolist()+[time[-1]])
+    sys.exit()
+    
     nage, nreg = mass.shape
     
     print('loaded data')
@@ -148,6 +154,7 @@ if __name__ == "__main__":
                                     length=length, store_trajectories=False, nadapt=0)
     eps = thiseps
 
+    # adapt epsilon while burning-in
     for k in range(nsegmax):
         #advance each sampler after adjusting step size
         afrac = hsampler.accepted.sum()*1.0/hsampler.chain.shape[0]
@@ -164,6 +171,7 @@ if __name__ == "__main__":
                                              store_trajectories=False, nadapt=0)
     alleps.append(thiseps) #this should not have actually changed during the sampling
 
+    # Production
     hsampler.sample(hsampler.chain[-1,:], model, iterations=5000, length=100,
                     epsilon=eps, store_trajectories=True)
     
@@ -171,28 +179,6 @@ if __name__ == "__main__":
     median, minus, plus = ptiles[1,:], ptiles[1,:] - ptiles[0,:], ptiles[2,:] - ptiles[1,:]
     maxapost = hsampler.lnprob.argmax()
 
-    ffig, faxes = pl.subplots(1,2, figsize=(10,4))
-    theta = hsampler.chain[maxapost,:]
-    dt = 10**(esfh['t2']) - 10**(esfh['t1'])
-    faxes[0].plot(time[:-1], theta[:-1]*dt, '-o')
-    faxes[0].set_ylabel(r'$\#/(M_\odot/yr)_j$')
-    faxes[1].plot(time[:-1], theta[:-1]*mass.sum(axis=1)[:-1]/N.sum(), '-o')
-    faxes[1].set_ylabel(r'fraction of catalog due to $t_j$')
-    [ax.set_xlabel(r'$t_j$') for ax in faxes]
-    ffig.show()
-    
-    clr = 'darkcyan'
-    bfig, baxes = pl.subplots(figsize=(12,7))
-    bp = baxes.boxplot(hsampler.chain,  labels = [str(t) for t in time],
-                       whis=[16, 84], widths=0.9,
-                       boxprops = {'alpha': 0.3, 'color':clr},
-                       whiskerprops = {'linestyle':'-', 'linewidth':2, 'color':'black'},
-                       showcaps=False, showfliers=False, patch_artist=True)
-    baxes.set_xlabel(r'$\log \, t_j ($yrs$)$', labelpad=15)
-    baxes.set_ylabel(r'$\theta_j \, (AGB \#/M_\odot) \, ($specific frequency$)$')
-    baxes.set_title(cloud.upper()+extralabel)
-    bfig.show()
-    bfig.savefig('{0}{1}_theta.pdf'.format(cloud.lower(), extralabel) )
     output = {'chain':hsampler.chain,
              'lnprob':hsampler.lnprob,
              'time':time,
@@ -205,17 +191,3 @@ if __name__ == "__main__":
     with open('{0}{1}_chain.p'.format(cloud.lower(), extralabel), 'wb') as f:
         pickle.dump(output, f)
 
-    try:
-        import pandas as pd
-        import seaborn as sns
-        chain = hsampler.chain[:,:5]
-        chain = pd.DataFrame(chain,
-                             columns=[str(i) for i in range(chain.shape[1])])
-        g = sns.PairGrid(chain)
-        g.map_lower(sns.kdeplot, cmap="Blues_d", bw='silverman',legend=False)
-        g.map_diag(pl.hist, lw=3, legend=False)
-        g.fig.set_figwidth(30)
-        g.fig.set_figheight(30)
-        g.savefig('{0}{1}_corner.pdf'.format(cloud.lower(), extralabel) )
-    except(ImportError):
-        pass
