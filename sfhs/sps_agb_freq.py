@@ -9,11 +9,47 @@ def select_function(isoc_dat):
     magnitudes (or colors) as well as things like logg, logL, etc.
     """
     #select only objects cooler than 4000K and in tp-agb phase
-    select = ( (isoc_dat['logt'] < np.log10(4000.0)) &
+    select = ( #(isoc_dat['logt'] < np.log10(4000.0)) &
                (isoc_dat['phase'] == 5.0)
                )
     print(select.sum())
     return isoc_dat[select]
+
+def cmd_select_function(isoc_dat):
+    """Trying to follow the Boyer et al. 2011 color cuts for AGB stars
+    """
+    trgb_lmc = {'k': 11.94,'i1':11.9, 'dm':18.4}
+    #trgb_smc = {'k': 12.6, 'i1':12.6, 'dm':18.9}
+    trgb = trgb_lmc
+    
+    j = isoc_dat['2mass_j'] + trgb['dm']
+    k = isoc_dat['2mass_ks'] + trgb['dm']
+    i1 = isoc_data['irac_1'] + trgb['dm']
+    i4 = isoc_data['irac_4'] + trgb['dm']
+    
+    xagb = ((i1 < trgb['i1']) &
+            (((j-i1) > 3.1) | ((i1-i4) > 0.8)) &
+            (i4 < (12.0 - 0.43 * (j-i4))) &
+            (i4 < (11.5 - 1.33 * (i1-i4)))
+            )
+        
+    cioni = ((k < (-0.48 * (j-k) + 13)) &
+              (k > (-13.33 * (j-k) + 24.666))
+            )
+    boyer = (cioni &
+             ((k < trgb['k']) | (i1 < trgb['i1']))
+            )
+    cstars = (boyer & ~xagb &
+              (k < (-13.333 * (j-k) + 28.4))
+              )
+    ostars = (boyer & ~xagb &
+              (k > (-13.333 * (j-k) + 28.4))
+              )
+
+    select = boyer | xagb
+    
+    return isoc_dat[select]          
+            
 
 
 def sps_expected(isoc, esfh):

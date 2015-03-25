@@ -112,7 +112,7 @@ if __name__ == "__main__":
     #extralabel, agbsel = '_C', lambda x: x[-1] == 'C'
     #extralabel, agbsel = '_O', lambda x: x[-1] == 'O'
     #extralabel, agbsel = '_X', lambda x: 'X' in x 
-    extralabel, agbsel = '_All', None
+    extralabel, agbsel = '_All_cb', None
     rname, mass, N, esfh = load_data(cloud, agbtype=agbsel)
     time = (esfh['t1'] + esfh['t2']) / 2
     nage, nreg = mass.shape
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     #mass = np.concatenate([mass, baseline[None, :]])
     #np.random.shuffle(N)
     #time = np.array(time.tolist()+[time[-1]])
-    sys.exit()
+    #sys.exit()
     
     nage, nreg = mass.shape
     
@@ -140,10 +140,15 @@ if __name__ == "__main__":
     initial = np.zeros(nage) +initial
     initial = initial * np.random.uniform(1,0.001, size=len(initial))
     #initial[-1] = N.sum()/nreg/2.
+
+    # Initial guess from badenes posterior
+    badenes_file = 'tex/badenes_results/LMC_MCMC_DTD_AGB_Unbinned_Iter000.dat'
+    bdat = np.loadtxt(badenes_file, skiprows=1)
+    initial = bdat[:,3]
+
     # Do some L-BFGS-B minimization?
     
     # HMC sampling
-
     nsegmax = 20
     iterations = 100
     length = 100
