@@ -15,12 +15,12 @@ def select_function(isoc_dat):
     print(select.sum())
     return isoc_dat[select]
 
-def cmd_select_function(isoc_dat):
+def cmd_select_function_lmc(isoc_dat):
     """Trying to follow the Boyer et al. 2011 color cuts for AGB stars
     """
-    trgb_lmc = {'k': 11.94,'i1':11.9, 'dm':18.4}
-    #trgb_smc = {'k': 12.6, 'i1':12.6, 'dm':18.9}
-    trgb = trgb_lmc
+    trgb = {'k': 11.94,'i1':11.9, 'dm':18.53}
+    #difference between the SMC and LMC distance moduli
+    delta_dm = 0.40
     
     j = isoc_dat['2mass_j'] + trgb['dm']
     k = isoc_dat['2mass_ks'] + trgb['dm']
@@ -29,16 +29,20 @@ def cmd_select_function(isoc_dat):
     
     xagb = ((i1 < trgb['i1']) &
             (((j-i1) > 3.1) | ((i1-i4) > 0.8)) &
-            (i4 < (12.0 - 0.43 * (j-i4))) &
-            (i4 < (11.5 - 1.33 * (i1-i4)))
+            ((i4 + delta_dm) < (12.0 - 0.43 * (j-i4))) &
+            ((i4 + delta_dm) < (11.5 - 1.33 * (i1-i4)))
             )
         
+    # Cioni 2006a (LMC) cuts
     cioni = ((k < (-0.48 * (j-k) + 13)) &
-              (k > (-13.33 * (j-k) + 24.666))
+             (k > (-13.33 * (j-k) + 24.666))
             )
+    # Boyer trgb cut
     boyer = (cioni &
              ((k < trgb['k']) | (i1 < trgb['i1']))
             )
+        
+    # Cioni 2006a (LMC) K1 line
     cstars = (boyer & ~xagb &
               (k < (-13.333 * (j-k) + 28.4))
               )
@@ -50,6 +54,46 @@ def cmd_select_function(isoc_dat):
     
     return isoc_dat[select]          
             
+def cmd_select_function_smc(isoc_dat):
+    """Trying to follow the Boyer et al. 2011 color cuts for AGB stars
+    For the SMC
+    """
+    trgb = {'k': 12.6, 'i1':12.6, 'dm':18.92}
+    #difference between the SMC and LMC distance moduli
+    delta_dm = -0.40
+    #metallicity effect on j-k color
+    delta_jk = -0.05
+    
+    j = isoc_dat['2mass_j'] + trgb['dm']
+    k = isoc_dat['2mass_ks'] + trgb['dm']
+    i1 = isoc_data['irac_1'] + trgb['dm']
+    i4 = isoc_data['irac_4'] + trgb['dm']
+    
+    xagb = ((i1 < trgb['i1']) &
+            (((j-i1) > 3.1) | ((i1-i4) > 0.8)) &
+            (i4 < (12.0 - 0.43 * (j-i4))) &
+            ((i4 < (11.5 - 1.33 * (i1-i4))) | (((i1-i4) > 3) & (i4 < 7.51)))
+            )
+
+    # Cioni 2006a (LMC) cuts adjusted for distance and metallicity
+    cioni = (((k + delta_dm) < (-0.48 * (j - k + delta_jk) + 13)) &
+              ((k + delta_dm) > (-13.33 * (j - k + delta_jk) + 24.666))
+            )
+    #these cuts already adjusted for distance through trgb differences
+    boyer = (cioni &
+             ((k < trgb['k']) | (i1 < trgb['i1']))
+            )
+    # Cioni 2006a (LMC) K1 line adjusted for distance and metallicity
+    cstars = (boyer & ~xagb &
+              ((k+ delta_dm) < (-13.333 * (j - k + delta_jk) + 28.4))
+              )
+    ostars = (boyer & ~xagb &
+              ((k+ delta_dm) > (-13.333 * (j - k +delta_jk) + 28.4))
+              )
+
+    select = boyer | xagb
+    
+    return isoc_dat[select]          
 
 
 def sps_expected(isoc, esfh):
