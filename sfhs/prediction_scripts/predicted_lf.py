@@ -30,7 +30,7 @@ def zsfh_to_obs(sfhlist, zlist, lfbandnames=None, select_function=None,
     ############
     if bandnames is not None:
         filterlist = observate.load_filters(bandnames)
-        spec, wave, mass = rsed.one_region_sed(copy.deepcopy(total_sfhs), total_zmet, sps)
+        spec, wave, mass = rsed.one_region_sed(copy.deepcopy(sfhlist), total_zmet, sps)
         mags = observate.getSED(wave, spec*rsed.to_cgs, filterlist=filterlist)
         maggies = 10**(-0.4 * np.atleast_1d(mags))
         sed_values['sed_ab_maggies'] = maggies
@@ -58,7 +58,7 @@ def zsfh_to_obs(sfhlist, zlist, lfbandnames=None, select_function=None,
     for i, band in enumerate(lfbandnames):
         lf_oneband = {}
         lf_base = [zbase[i] for zbase in all_lf_base]
-        lfs_zt, lf, logages = rsed.one_region_lfs(copy.deepcopy(total_sfhs), lf_base)
+        lfs_zt, lf, logages = rsed.one_region_lfs(copy.deepcopy(sfhlist), lf_base)
         lf_oneband['bandname'] = band
         lf_oneband['clf'] = lf
         lf_oneband['clf_mags'] = bins
@@ -71,65 +71,92 @@ def zsfh_to_obs(sfhlist, zlist, lfbandnames=None, select_function=None,
     # Write output
     ############
     return sed_values, lf_values
-    
-if __name__ == '__main__':
-    
-    def select_function(isoc_dat):
-        """
-        Here's a function that selects certain rows from the full
-        isochrone data and returns them.  The selection criteria can
-        involve any of the columns given by the isochrone data, including
-        magnitudes (or colors) as well as things like logg, logL, etc.
-        """
-        #select only objects cooler than 4000K and in tp-agb phase
-        select = ( (isoc_dat['logt'] < np.log10(4000.0)) &
-                   (isoc_dat['phase'] == 5.0)
-                   )
-        print(select.sum())
-        return isoc_dat[select]
 
+def make_clfs(cloud, tpagb_norm_type=2, select_function=None,
+              sedfilters = None, **sps_kwargs):
+    
     # These are the filters for integrated magnitudes of the object
-    sedfilters = ['galex_NUV', 'spitzer_irac_ch2',
-                  'spitzer_irac_ch4', 'spitzer_mips_24']
-    sedfilters = None
+    #sedfilters = ['galex_NUV', 'spitzer_irac_ch2',
+    #              'spitzer_irac_ch4', 'spitzer_mips_24']
+    
     # These are the filters for which you want LFs
     lffilters = ['2mass_ks','irac_2','irac_4']
 
     ########
-    # Get the (smc) SFH
+    # Get the SFH
     ########
     import mcutils
-    dm=18.9
-    regions = mcutils.smc_regions()
+    if cloud.lower() == 'lmc':
+        print('doing lmc')
+        dm = 18.5
+        regions = mcutils.lmc_regions()
+    elif cloud.lower() == 'smc':
+        print('doing smc')
+        dm = 18.9
+        regions = mcutils.smc_regions()
+        
     if 'header' in regions.keys():
         rheader = regions.pop('header') #dump the header info from the reg. dict        
     total_sfhs = None
     for n, dat in regions.iteritems():
         total_sfhs = mcutils.sum_sfhs(total_sfhs, dat['sfhs'])
         total_zmet = dat['zmet']
-
+        
     #######
     #Define SPS object
     #######
-    sps = fsps.StellarPopulation(add_agb_dust_model=True,
-                                 tpagb_norm_type=2,
-                                 compute_vega_mags=True)
+    sps = fsps.StellarPopulation(compute_vega_mags=True)
+
+    sps.params['add_agb_dust_model'] = True
+    sps.params['tpagb_norm_type'] = tpagb_norm_type
     sps.params['sfh'] = 0
     sps.params['imf_type'] = 0.0 #salpeter
     sps.params['agb_dust'] = 1.0
-    agebins = np.arange(9)*0.3 + 7.4
-
+    for k, v in sps_kwargs.iteritems():
+        try:
+            sps.params[k] = v
+        except(KeyError):
+            pass
+    
     # Go from SFH to LFs and SED
     sed, clfs = zsfh_to_obs(total_sfhs, total_zmet,
                             lfbandnames=lffilters,
                             bandnames=sedfilters, sps=sps,
-                            select_function=select_function) 
+                            select_function=select_function)
 
-    pl.figure()
-    for lf in clfs:
-        pl.plot(lf['clf_mags']+dm, lf['clf'], label=lf['bandname'])
-    pl.xlim(12,4)
-    pl.yscale('log')
-    pl.ylim(1,1e5)
-    pl.legend(loc=0)
-    pl.show()
+    return clfs
+
+if __name__ == '__main__':
+    
+    from sps_agb_freq import select_function as phase_select
+    from sps_agb_freq import select_function_villaume as phase_select_v
+    from sps_agb_freq import cmd_select_function_lmc, cmd_select_function_smc
+    import datautils
+    
+    tptypes = [0,1,2]
+    tpnames = ['MG08', 'CG10', 'VCJ14']
+    clouds = ['lmc', 'smc']
+    sel_fn = [phase_select_v, phase_select_v]
+    title = 'Phase!=6, T<4000 Cut'
+    #sel_fn = [cmd_select_function_lmc, cmd_select_function_smc]
+    #title = 'Obs CMD Cuts'
+    dm = [18.5, 18.9]
+    
+    fig, axes = pl.subplots(3, 2, figsize=(10,8))
+    for j, cloud in enumerate(clouds):
+        for ttype in tptypes:
+            clfs = make_clfs(cloud, tpagb_norm_type=ttype,
+                             select_function=sel_fn[j])
+            for i, lf in enumerate(clfs):
+                label = tpnames[ttype]
+                axes[i,j].plot(lf['clf_mags']+dm[j], lf['clf'], label=label)
+                axes[i,j].set_xlabel(lf['bandname'], )
+                axes[i,j].set_xlim(12,4)
+                axes[i,j].set_yscale('log')
+                axes[i,j].set_ylim(0.1,1e6)
+                
+        axes[0,j].set_title(cloud.upper())
+    #pl.legend(loc=0)
+    axes[0,0].legend(loc=0, prop={'size':8})
+    fig.suptitle(title)
+    fig.show()

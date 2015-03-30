@@ -6,7 +6,7 @@ def isochrone_to_clfs(isoc, bands, select_function=None):
     """
     :param isoc:
         The isochrone data, as returned by
-        StellarPopulation.isochrones()
+        fsps.StellarPopulation.isochrones()
         
     :returns clfs:
         A list of dictionaries where each dictionary describes the CLF
@@ -27,8 +27,23 @@ def isochrone_to_clfs(isoc, bands, select_function=None):
 
     return clfs
 
-def isocdata_to_clf(isoc_dat, band, deltam=0.01):
+def isocdata_to_clf(isoc_dat, band, deltam=0.01, pad=100):
     """
+    :param isoc_dat:
+        numpy structured array of isochrone data as returned by
+        fsps.StellarPopulation.isochrones()
+
+    :param band:
+        The band for which you want to generate a CLF.  String. Should
+        be one of the output of fsps.list_filters()
+
+    :param deltam:
+        The magnitude spacing of the output CLF
+
+    :param pad:
+        extend the CLF to pad * deltam magnitudes fainter than the
+        faintest magnitude in the isochrones.
+        
     :returns clf:
         A dictionary with the following key-value pairs:
          ssp_ages: Log of the age for each CLF, ndarray of shape (nage,)
@@ -37,13 +52,12 @@ def isocdata_to_clf(isoc_dat, band, deltam=0.01):
                    shape (nmag,)
 
     """
-
     # Get isochrone data for this band
     mags, isoc_age = isoc_dat[band], isoc_dat['age']
     isoc_wght = 10**isoc_dat['log(weight)']
     
     # Build a homogenous magnitude grid for this band
-    bins = np.arange(mags.min(), mags[mags < 99].max()+deltam, deltam)
+    bins = np.arange(mags.min(), mags[mags < 99].max()+ pad*deltam, deltam)
     
     # Get unique ages and loop over them, building the CLF  for each
     #  age and then interpolating onto the common magnitude grid
@@ -56,9 +70,9 @@ def isocdata_to_clf(isoc_dat, band, deltam=0.01):
         x = (mags[isoc_age == age][order]).tolist() + [mags.max()]
         y = cumwght.tolist() + [cumwght.max()]
         # Interpolate onto common mag grid
-        lf[i, :] = interp1d(x, y, fill_value = 0.0,
-                            bounds_error = False)(bins)
-
+        #lf[i, :] = interp1d(x, y, fill_value = 0.0,
+        #                    bounds_error = False)(bins)
+        lf[i,:] = np.interp(bins, x, y, left=0.0)
     # Dump the results to a dictionary and return it
     return {'ssp_ages':logages, 'bins':bins, 'lf':lf, 'band':band}
 
@@ -149,7 +163,7 @@ def write_clf_many(clf, filename, lftype, colheads='N<m'):
     ncol = dat.shape[1]
     fstring = '{:.4f}'+ ncol*' {:5.3e}'+'\n'
     out = open(filename,'w')
-    out.write('{0}\n mag  {1}\n'.format(lftype, colheads))
+    out.write('# {0}\n # mag  {1}\n'.format(lftype, colheads))
     for m,d in zip(mag, dat):
         out.write(fstring.format(m,*d))
 

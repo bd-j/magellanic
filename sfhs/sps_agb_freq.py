@@ -15,6 +15,23 @@ def select_function(isoc_dat):
     print(select.sum())
     return isoc_dat[select]
 
+
+def select_function_villaume(isoc_dat):
+    """
+    Here's a function that selects certain rows from the full
+    isochrone data and returns them.  The selection criteria can
+    involve any of the columns given by the isochrone data, including
+    magnitudes (or colors) as well as things like logg, logL, etc.
+    """
+    #select only objects cooler than 4000K and in tp-agb phase
+    select = ( (isoc_dat['logt'] < np.log10(4000.0)) &
+               (isoc_dat['phase'] != 6.0) &
+               (isoc_dat['age'] > 6)
+               )
+    print(select.sum())
+    return isoc_dat[select]
+
+
 def cmd_select_function_lmc(isoc_dat):
     """Trying to follow the Boyer et al. 2011 color cuts for AGB stars
     """
@@ -24,9 +41,10 @@ def cmd_select_function_lmc(isoc_dat):
     
     j = isoc_dat['2mass_j'] + trgb['dm']
     k = isoc_dat['2mass_ks'] + trgb['dm']
-    i1 = isoc_data['irac_1'] + trgb['dm']
-    i4 = isoc_data['irac_4'] + trgb['dm']
-    
+    i1 = isoc_dat['irac_1'] + trgb['dm']
+    i4 = isoc_dat['irac_4'] + trgb['dm']
+
+    # Boyer X-AGB, accounting for distance differences
     xagb = ((i1 < trgb['i1']) &
             (((j-i1) > 3.1) | ((i1-i4) > 0.8)) &
             ((i4 + delta_dm) < (12.0 - 0.43 * (j-i4))) &
@@ -42,7 +60,7 @@ def cmd_select_function_lmc(isoc_dat):
              ((k < trgb['k']) | (i1 < trgb['i1']))
             )
         
-    # Cioni 2006a (LMC) K1 line
+    # Cioni 2006a (LMC) K1 line, exluding xagbs
     cstars = (boyer & ~xagb &
               (k < (-13.333 * (j-k) + 28.4))
               )
@@ -66,8 +84,8 @@ def cmd_select_function_smc(isoc_dat):
     
     j = isoc_dat['2mass_j'] + trgb['dm']
     k = isoc_dat['2mass_ks'] + trgb['dm']
-    i1 = isoc_data['irac_1'] + trgb['dm']
-    i4 = isoc_data['irac_4'] + trgb['dm']
+    i1 = isoc_dat['irac_1'] + trgb['dm']
+    i4 = isoc_dat['irac_4'] + trgb['dm']
     
     xagb = ((i1 < trgb['i1']) &
             (((j-i1) > 3.1) | ((i1-i4) > 0.8)) &
