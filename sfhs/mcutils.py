@@ -45,16 +45,24 @@ def regname_to_xy(regname, cloud='smc'):
             y = y*2 + np.array([0,1,0,1])
             return list(x), list(y)
         
-def mc_ast(cloud):
+def mc_ast(cloud, badenes=False, **extras):
     """
     Set up the sky coordinate system.
     """
     if cloud.lower() == 'lmc':
         #regions = utils.lmc_regions()
         nx, ny, dm = 48, 38, 18.5
-        cdelt = [24./60./np.cos(np.deg2rad(-69.38333))/2.,  24./60./2.]
-        crpix = [ 0.5, 0.5]
-        crval = [ 67.75 - cdelt[0]/2, -72.3833]
+        if badenes:
+            # Use the Badenes reverse-engineering of the coordinates
+            cdelt = [0.5625,  0.2]
+            crval = [ 67.3125, -72.5]
+            crpix = [0.0, 0.0]
+        else:
+            # Use my reverse engineering of the coordinates
+            cdelt = [24./60./np.cos(np.deg2rad(-69.38333))/2.,  24./60./2.]
+            crval = [ 67.75 - cdelt[0]/2, -72.3833]
+            crpix = [ 0.5, 0.5]
+        
     elif cloud.lower() == 'smc':
         #regions = utils.smc_regions()
         nx, ny, dm = 20, 23, 18.9
@@ -65,7 +73,7 @@ def mc_ast(cloud):
         cdelt = [0.5/11 * 15., 12./60.]
     return crpix, crval, cdelt, [nx, ny]#, regions
 
-def corners_of_region(regname, cloud, string=False):
+def corners_of_region(regname, cloud, string=False, **kwargs):
     """
     Use a defnition of the grid worked out from figure 3 of H & Z
     2004.  The idea is that the given central coordinates are not
@@ -73,7 +81,7 @@ def corners_of_region(regname, cloud, string=False):
     and Dec
     """
     #get the astrometry
-    crpix, crval, cd, [nx, ny] = mc_ast(cloud)
+    crpix, crval, cd, [nx, ny] = mc_ast(cloud, **kwargs)
     rcorners = np.array([0,0,1,1]) * cd[0]
     dcorners = np.array([0,1,1,0]) * cd[1]
     #get the pixel values
@@ -101,7 +109,6 @@ def parse_locstring(locstring):
     ra = 15.*( float(loc[1][:-1]) + float(loc[2][:-1])/60.)
     return ra, dec
 
-
 def sum_sfhs(sfhs1, sfhs2):
     """
     Accumulate individual sets of SFHs into a total set of SFHs.  This
@@ -119,19 +126,26 @@ def sum_sfhs(sfhs1, sfhs2):
         return out
 
 
-# Read the Harris and Zaritsky data files ( obtained from
-#  http://djuma.as.arizona.edu/~dennis/mcsurvey/Data_Products.html )
-#  into a dictionary of SFHs.  Each key of the returned dictionary is
-#  a region name, and each value is a dictionary containing a list of
-#  SFHs for that region (one for each metallicity), a list of
-#  metallicities of each SFH, and a location string giving the RA, Dec
-#  coordinates of the region.  There is also one key in the
-#  dictionary, 'header', containing header information from the
-#  original files.  Each of the SFHs is a structured ndarray that can be
-#  input to scombine methods.
 
 
 def lmc_regions(filename = lmcfile):
+    """Read the Harris and Zaritsky LMC data file ( obtained from
+    http://djuma.as.arizona.edu/~dennis/mcsurvey/Data_Products.html )
+    into a dictionary of SFHs.
+
+    :param filename:
+        The path to the data file.
+    
+    :returns region_dict:
+        A dictionary of LMC regions. Each key of the returned
+        dictionary is a region name, and each value is a dictionary
+        containing a list of SFHs for that region (one for each
+        metallicity), a list of metallicities of each SFH, and a
+        location string giving the RA, Dec coordinates of the region.
+        There is also one key in the dictionary, 'header', containing
+        header information from the original files.  Each of the SFHs
+        is a structured ndarray that can be input to scombine methods.
+    """
 
     regions = {}
     k = 'header'
@@ -189,6 +203,23 @@ def process_lmc_sfh(dat):
     return all_sfhs, zlegend
     
 def smc_regions(filename = smcfile):
+    """Read the Harris and Zaritsky SMC data file ( obtained from
+    http://djuma.as.arizona.edu/~dennis/mcsurvey/Data_Products.html )
+    into a dictionary of SFHs.
+
+    :param filename:
+        The path to the data file.
+    
+    :returns region_dict:
+        A dictionary of SMC regions. Each key of the returned
+        dictionary is a region name, and each value is a dictionary
+        containing a list of SFHs for that region (one for each
+        metallicity), a list of metallicities of each SFH, and a
+        location string giving the RA, Dec coordinates of the region.
+        There is also one key in the dictionary, 'header', containing
+        header information from the original files.  Each of the SFHs
+        is a structured ndarray that can be input to scombine methods.
+    """
     #wow.  really?  could this *be* harder to parse?
     #why so differnt than lmc?
     regions ={'header':[]}

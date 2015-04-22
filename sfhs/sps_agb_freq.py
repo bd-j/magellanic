@@ -1,7 +1,7 @@
 import numpy as np
 import fsps, mcutils, sputils
 
-def select_function(isoc_dat):
+def agb_select_function(isoc_dat, **extras):
     """
     Here's a function that selects certain rows from the full
     isochrone data and returns them.  The selection criteria can
@@ -16,7 +16,7 @@ def select_function(isoc_dat):
     return isoc_dat[select]
 
 
-def select_function_villaume(isoc_dat):
+def agb_select_function_villaume(isoc_dat, **extras):
     """
     Here's a function that selects certain rows from the full
     isochrone data and returns them.  The selection criteria can
@@ -31,8 +31,17 @@ def select_function_villaume(isoc_dat):
     print(select.sum())
     return isoc_dat[select]
 
-
-def cmd_select_function_lmc(isoc_dat):
+def agb_select_function_cmd(isoc_dat, cloud='lmc', **extras):
+    """Select AGBs using CMD cuts.
+    """
+    if cloud.lower() == 'lmc':
+        return agb_select_function_cmd_lmc(isoc_dat, **extras)
+    elif cloud.lower() == 'smc':
+        return agb_select_function_cmd_smc(isoc_dat, **extras)
+    else:
+        raise ValueError('Invalid cloud designation')
+    
+def agb_select_function_cmd_lmc(isoc_dat, **extras):
     """Trying to follow the Boyer et al. 2011 color cuts for AGB stars
     """
     trgb = {'k': 11.94,'i1':11.9, 'dm':18.53}
@@ -72,7 +81,7 @@ def cmd_select_function_lmc(isoc_dat):
     
     return isoc_dat[select]          
             
-def cmd_select_function_smc(isoc_dat):
+def agb_select_function_cmd_smc(isoc_dat, **extras):
     """Trying to follow the Boyer et al. 2011 color cuts for AGB stars
     For the SMC
     """
@@ -113,7 +122,6 @@ def cmd_select_function_smc(isoc_dat):
     
     return isoc_dat[select]          
 
-
 def sps_expected(isoc, esfh):
     """
     :param isoc:
@@ -133,7 +141,6 @@ def sps_expected(isoc, esfh):
                      thisage in ssp_ages]
     return ssp_ages, np.array(total_weights)
 
-
 sps = fsps.StellarPopulation(compute_vega_mags=True)
 sps.params['sfh'] = 0
 sps.params['imf_type'] = 0
@@ -141,26 +148,31 @@ sps.params['tpagb_norm_type'] = 2 #VCJ
 sps.params['add_agb_dust_model'] = True
 sps.params['agb_dust'] = 1.0
 
-def main(cloudname, select_function=select_function, **fsps_kwargs):
+def make_freq_prediction(cloudname, esfh, sps=sps,
+                         select_function=agb_select_function,
+                         **kwargs):
 
-    for k, v in fsps_kwargs.iteritems():
-        sps.params[k] = v
+    for k, v in kwargs.iteritems():
+        try:
+            sps.params[k] = v
+        except:
+            pass
         
     cloud = cloudname.lower()
     if cloud == 'smc':
-        regions = mcutils.smc_regions()
+        #regions = mcutils.smc_regions()
         zcloud = 0.004
     elif cloud == 'lmc':
-        regions = mcutils.lmc_regions()
+        #regions = mcutils.lmc_regions()
         zcloud = 0.008
         #zcloud = 0.5 * 0.019
         
-    esfh = regions['AA']['sfhs'][0]
+    #esfh = regions['AA']['sfhs'][0]
     sps.params['zmet'] = np.abs(zcloud - sps.zlegend).argmin() + 1
     zactual = sps.zlegend[sps.params['zmet'] - 1]
     print(r'Using $Z={0}Z_\odot$'.format(zactual/0.019))
     isoc = sps.isochrones()
-    agbisoc = select_function(isoc)
+    agbisoc = select_function(isoc, cloud=cloud, **kwargs)
     ssp_ages, ssp_nexpected = sps_expected(agbisoc, esfh)
     
     dt = np.concatenate([[10**ssp_ages[0]], 10**ssp_ages[1:] - 10**ssp_ages[:-1]])
@@ -193,3 +205,8 @@ def main(cloudname, select_function=select_function, **fsps_kwargs):
     return nexpected, zactual
 
     
+
+if __name__ == "__main__":
+    cloud = []
+    agb_norm_type = []
+    selfn = []

@@ -52,7 +52,7 @@ class LinearModel(object):
             #print('theta_out ={0}'.format(theta))
         return theta, sign, oob
 
-def load_data(cloud, agbtype=None):
+def load_data(cloud, agbtype=None, **kwargs):
     """
     :returns name:
         list of length (nreg,)
@@ -78,7 +78,7 @@ def load_data(cloud, agbtype=None):
 
     #AGB data
     cat, cols = datautils.cloud_cat(cloud.lower())
-    agbcat = datautils.select(cat, cols, codes=cols['agb_codes'])
+    agbcat = datautils.select(cat, cols, codes=cols['agb_codes'], **kwargs)
     agbregion = ds9.Polygon(datautils.bounding_hull(agbcat, cols)[0])
     if agbtype is None:
         codes = cols['agb_codes']
@@ -89,11 +89,11 @@ def load_data(cloud, agbtype=None):
     # loop over regions and count agb stars
     mass, N, rnames = [], [], []
     for name, dat in regions.iteritems():
-        shape, defstring = mcutils.corners_of_region(name, cloud.lower(), string=True)
+        shape, defstring = mcutils.corners_of_region(name, cloud.lower(), string=True, **kwargs)
         reg = ds9.Polygon(defstring)
         if not np.all(agbregion.contains(reg.ra, reg.dec)):
             continue
-        acat = datautils.select(agbcat, cols, region=reg, codes=codes)
+        acat = datautils.select(agbcat, cols, region=reg, codes=codes, **kwargs)
         N.append( len(acat) )
         total_sfh = None
         for s in dat['sfhs']:
@@ -109,11 +109,18 @@ def load_data(cloud, agbtype=None):
 if __name__ == "__main__":
 
     cloud = sys.argv[1].lower()  #'lmc' | 'smc'
+    try:
+        bias = bool(sys.argv[2])
+        if sys.argv[2] in ['False', 'false']:
+            bias = False
+    except:
+        bias = False
+        print('not adding bias')
     #extralabel, agbsel = '_C', lambda x: x[-1] == 'C'
     #extralabel, agbsel = '_O', lambda x: x[-1] == 'O'
     #extralabel, agbsel = '_X', lambda x: 'X' in x 
-    extralabel, agbsel = '_All_cb', None
-    rname, mass, N, esfh = load_data(cloud, agbtype=agbsel)
+    extralabel, agbsel = '_All_cb_noRS', None
+    rname, mass, N, esfh = load_data(cloud, agbtype=agbsel, badenes=True)
     time = (esfh['t1'] + esfh['t2']) / 2
     nage, nreg = mass.shape
 
@@ -122,11 +129,13 @@ if __name__ == "__main__":
         f.write('Region     N_agb   '+'  '.join(['m_{}'.format(i) for i in range(nage)])+ '\n')
         for i,rn in enumerate(rname):
             f.write(fmt.format(rn, N[i], *mass[:,i]))
-    #Add a constant offset term
-    #baseline = np.zeros(nreg) + mass.sum()/nreg/nage
-    #mass = np.concatenate([mass, baseline[None, :]])
-    #np.random.shuffle(N)
-    #time = np.array(time.tolist()+[time[-1]])
+
+    if bias:
+        #Add a constant offset term
+        baseline = np.zeros(nreg) + mass.sum()/nreg/nage
+        mass = np.concatenate([mass, baseline[None, :]])
+        #np.random.shuffle(N)
+        time = np.array(time.tolist()+[time[-1]])
     #sys.exit()
     
     nage, nreg = mass.shape
@@ -139,12 +148,13 @@ if __name__ == "__main__":
     initial = N.sum()/mass.sum()/nage
     initial = np.zeros(nage) +initial
     initial = initial * np.random.uniform(1,0.001, size=len(initial))
-    #initial[-1] = N.sum()/nreg/2.
+    if bias:
+        initial[-1] = N.sum()/nreg/2.
 
     # Initial guess from badenes posterior
     badenes_file = 'tex/badenes_results/LMC_MCMC_DTD_AGB_Unbinned_Iter000.dat'
     bdat = np.loadtxt(badenes_file, skiprows=1)
-    initial = bdat[:,3]
+    #initial = bdat[:,3]
 
     # Do some L-BFGS-B minimization?
     

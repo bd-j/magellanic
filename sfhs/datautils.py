@@ -2,8 +2,6 @@ import matplotlib.pyplot as pl
 import numpy as np
 import pickle
 import astropy.io.fits as pyfits
-import astropy.wcs as pywcs
-from sedpy import ds9region as ds9reg
 from lfutils import *
 
 smccols = {'RA': 'RAJ2000',
@@ -13,7 +11,7 @@ smccols = {'RA': 'RAJ2000',
            'IRAC4_err': 'e__8_0_',
            'IRAC2_err': 'e__4_5_',
            'STARTYPE': 'Class',
-           'agb_codes': ['C-AGB', 'O-AGB', 'x-AGB', 'aO-AGB','FIR'],
+           'agb_codes': ['C-AGB', 'O-AGB', 'x-AGB', 'aO-AGB'],#'FIR'],
            'corners': ''
           }
 lmccols = {'RA': 'RA',
@@ -23,13 +21,14 @@ lmccols = {'RA': 'RA',
            'IRAC4_err': 'DIRAC4',
            'IRAC2_err': 'DIRAC2',
            'STARTYPE': 'FLAG',
-           'agb_codes': ['C', 'O', 'X', 'aO/C', 'aO/O', 'RS-C', 'RS-O', 'RS-X', 'RS-a'],
+           'agb_codes': ['C', 'O', 'X', 'aO/C', 'aO/O'],# 'RS-C', 'RS-O', 'RS-X', 'RS-a'],
            'corners': ''
            }
 
-rdir = '/Users/bjohnson/Projects/magellanic/sfhs/results_predicted/'
+#rdir = '/Users/bjohnson/Projects/magellanic/sfhs/results_predicted/'
 
 def photometer(imname, region):
+    import astropy.wcs as pywcs
     image = pyfits.getdata(imname)
     header = pyfits.getheader(imname)
     wcs = pywcs.WCS(header)
@@ -41,7 +40,28 @@ def photometer(imname, region):
     abmag = -2.5*np.log10((flux * 1e6*2.35e-11*ps.prod())/3631.)
     return abmag
 
-def select(catalog, coldict, region=None, codes=None):
+def select(catalog, coldict, region=None, codes=None, **extras):
+    """Select stars of types given by ``codes`` from the supplied ``catalog``.
+
+    :param catalog:
+        Nd structured array.
+
+    :param coldict:
+        A dictionary giving a mapping from 'RA', 'DEC', and 'STARTYPE'
+        to the corresponding field names in the supplied catalog.
+
+    :param region:
+        If supplied, a sedpy.ds9region.Region object which has the
+        method ``contains`` defined.  Only catalog objects contained
+        in the region are returned
+
+    :param codes:
+        A list of string types giving the 'STARTYPE' codes to select
+
+    :returns subcat:
+        The subset of the supplied catalog that is of type ``codes``
+        and within the supplied region.
+    """
     x, y = catalog[coldict['RA']], catalog[coldict['DEC']]
     if region is None:
         sel = np.ones(len(catalog), dtype=bool)
@@ -54,7 +74,14 @@ def select(catalog, coldict, region=None, codes=None):
         sel = sel & typesel
     return catalog[sel]
 
-def bounding_hull(catalog, coldict):
+def cumulative_obs_lf(catalog, bandname):
+    mag = catalog[bandname]
+    mag = mag[np.isfinite(mag)]
+    order = np.argsort(mag)
+    return mag[order], np.arange(len(mag))
+
+
+def bounding_hull(catalog, coldict, **extras):
     """Compute the convex hull for a catalog and return a string of
     the coordinates of the vertices, as well as a two element list of
     arrays of the RAs and Decs of the vertices.
@@ -68,13 +95,6 @@ def bounding_hull(catalog, coldict):
     corners = ','.join([str(val) for pair in zip(v[0], v[1]) for val in pair])
     return corners, v
 
-def cumulative_obs_lf(catalog, bandname):
-    mag = catalog[bandname]
-    mag = mag[np.isfinite(mag)]
-    order = np.argsort(mag)
-    return mag[order], np.arange(len(mag))
-
-
 def mcps_corners(cloud):
     """
     Return strings defining vertices of the polygon enclosing the MCPS
@@ -87,9 +107,10 @@ def mcps_corners(cloud):
         corners = '70.0,-72.2,92,-72.2,90,-65.4,72.5,-65.4'
     return corners
 
-    
 def cloud_cat(cloud):
-       
+    """Shortcut method to give the catalog and coldict mapping for a
+    given cloud.
+    """   
     c = cloud.lower()
     catname = '/Users/bjohnson/Projects/magellanic/catalog/boyer11_{}.fits.gz'.format(c)
     catalog = pyfits.getdata(catname)
@@ -100,6 +121,7 @@ def cloud_cat(cloud):
     return catalog, cols
 
 if __name__ == '__main__':
+    from sedpy import ds9region as ds9reg
     clouds, agb_dust = ['smc', 'lmc'], 1.0
     for cloud in clouds:
 
