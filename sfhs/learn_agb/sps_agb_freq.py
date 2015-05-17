@@ -1,6 +1,14 @@
 import numpy as np
 import fsps, mcutils, sputils
 
+sps = fsps.StellarPopulation(compute_vega_mags=True)
+sps.params['sfh'] = 0
+sps.params['imf_type'] = 0
+sps.params['tpagb_norm_type'] = 2 #VCJ
+sps.params['add_agb_dust_model'] = True
+sps.params['agb_dust'] = 1.0
+
+
 def agb_select_function(isoc_dat, **extras):
     """
     Here's a function that selects certain rows from the full
@@ -141,12 +149,6 @@ def sps_expected(isoc, esfh):
                      thisage in ssp_ages]
     return ssp_ages, np.array(total_weights)
 
-sps = fsps.StellarPopulation(compute_vega_mags=True)
-sps.params['sfh'] = 0
-sps.params['imf_type'] = 0
-sps.params['tpagb_norm_type'] = 2 #VCJ
-sps.params['add_agb_dust_model'] = True
-sps.params['agb_dust'] = 1.0
 
 def make_freq_prediction(cloudname, esfh, sps=sps,
                          select_function=agb_select_function,
