@@ -3,7 +3,7 @@ import matplotlib
 #matplotlib.use('Tkagg')
 import matplotlib.pyplot as pl
 import sys, pickle, hmc
-import mcutils
+from magellanic import mcutils
 
 #theta = np.zeros(nage)
 
@@ -64,7 +64,7 @@ def load_data(cloud, agbtype=None, **kwargs):
         ndarray giving number of stars observed in each region, of
         shape (nreg)
     """
-    import datautils
+    from magellanic import datautils
     import sedpy.ds9region as ds9
 
     #SFH data
