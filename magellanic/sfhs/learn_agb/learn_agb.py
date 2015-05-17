@@ -125,7 +125,7 @@ if __name__ == "__main__":
     nage, nreg = mass.shape
 
     fmt = '{:8s} {:7.0f}   ' + nage * ' {:<8.1f}'+'\n'
-    with open('{0}{1}_data.dat'.format(cloud.lower(),extralabel),'w') as f:
+    with open('chains/{0}{1}_data.dat'.format(cloud.lower(),extralabel),'w') as f:
         f.write('Region     N_agb   '+'  '.join(['m_{}'.format(i) for i in range(nage)])+ '\n')
         for i,rn in enumerate(rname):
             f.write(fmt.format(rn, N[i], *mass[:,i]))
@@ -203,6 +203,6 @@ if __name__ == "__main__":
              'N': N}
 
     #tfig = triangle.corner(hsampler.chain)
-    with open('{0}{1}_chain.p'.format(cloud.lower(), extralabel), 'wb') as f:
+    with open('chains/{0}{1}_chain.p'.format(cloud.lower(), extralabel), 'wb') as f:
         pickle.dump(output, f)
 

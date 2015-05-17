@@ -128,9 +128,9 @@ def make_clfs(cloud, tpagb_norm_type=2, select_function=None,
 
 if __name__ == '__main__':
     
-    from sps_agb_freq import select_function as phase_select
-    from sps_agb_freq import select_function_villaume as phase_select_v
-    from sps_agb_freq import cmd_select_function_lmc, cmd_select_function_smc
+    from sps_freq import select_function as phase_select
+    from sps_freq import select_function_villaume as phase_select_v
+    from sps_freq import cmd_select_function_lmc, cmd_select_function_smc
     import datautils
     
     tptypes = [0,1,2]

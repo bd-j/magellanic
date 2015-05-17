@@ -96,11 +96,12 @@ def isocdata_to_cmd(isoc_dat, color, mag):
         where bins is an ndarray of bin edges and `band' is the filter.
 
     :returns cmd:
-        A 2-d numpy array giving the color magnitude diagram
+        A 2-d numpy array of shape (nc, nm) giving the color magnitude
+        diagram
     """
     c = isoc_dat[color[0]] - isoc_dat[color[1]]
     m = isoc_dat[mag[0]]
-    cmd = np.histogram2d(c, m, bins=[color[2], mag[1]],
+    cmd, _, _ = np.histogram2d(c, m, bins=[color[2], mag[1]],
                          weights=10**isoc_dat['log(weight)'])
     return cmd
 

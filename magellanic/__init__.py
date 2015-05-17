@@ -1,1 +1,1 @@
-from sfhs import datautils, mcutils, lfutils, sputils, regutils, regionsed
+from sfhs import datautils, mcutils, lfutils, sputils, sps_freq, regutils, regionsed

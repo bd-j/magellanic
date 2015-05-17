@@ -1,13 +1,5 @@
 import numpy as np
-import fsps, mcutils, sputils
-
-sps = fsps.StellarPopulation(compute_vega_mags=True)
-sps.params['sfh'] = 0
-sps.params['imf_type'] = 0
-sps.params['tpagb_norm_type'] = 2 #VCJ
-sps.params['add_agb_dust_model'] = True
-sps.params['agb_dust'] = 1.0
-
+import mcutils, sputils
 
 def agb_select_function(isoc_dat, **extras):
     """
@@ -150,7 +142,7 @@ def sps_expected(isoc, esfh):
     return ssp_ages, np.array(total_weights)
 
 
-def make_freq_prediction(cloudname, esfh, sps=sps,
+def make_freq_prediction(cloudname, esfh, sps=None,
                          select_function=agb_select_function,
                          **kwargs):
 
@@ -209,6 +201,15 @@ def make_freq_prediction(cloudname, esfh, sps=sps,
     
 
 if __name__ == "__main__":
+    import fsps
+    sps = fsps.StellarPopulation(compute_vega_mags=True)
+    sps.params['sfh'] = 0
+    sps.params['imf_type'] = 0
+    sps.params['tpagb_norm_type'] = 2 #VCJ
+    sps.params['add_agb_dust_model'] = True
+    sps.params['agb_dust'] = 1.0
+
+
     cloud = []
     agb_norm_type = []
     selfn = []

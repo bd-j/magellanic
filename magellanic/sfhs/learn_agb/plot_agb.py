@@ -122,7 +122,7 @@ def gaussfit_lnprob(theta, samples=0):
 
 if __name__ == "__main__":
     
-    filename = 'lmc_All_cb_chain.p'
+    filename = 'chains/lmc_All_cb_chain.p'
     with open(filename) as f:
         result = pickle.load(f)
     #filename2 = 'tex/chains/lmc_All_cb_noRS_chain.p'
