@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib.pyplot as pl
 
 import astropy.io.fits as pyfits
-import regionsed as rsed
-from lfutils import *
+import magellanic.regionsed as rsed
+from magellanic.lfutils import *
 
 try:
     import fsps

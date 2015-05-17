@@ -3,9 +3,9 @@ import numpy as np
 import matplotlib.pyplot as pl
 
 import astropy.io.fits as pyfits
-import regionsed as rsed
-import mcutils as utils
-from lfutils import *
+import magellanic.regionsed as rsed
+import magellanic.mcutils as utils
+from magellanic.lfutils import *
 
 try: 
     import fsps

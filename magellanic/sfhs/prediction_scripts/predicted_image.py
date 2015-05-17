@@ -6,9 +6,9 @@ import astropy.io.fits as pyfits
 import fsps
 from sedpy import observate
 
-from sfhutils import read_lfs
-import regionsed as rsed
-import mcutils as utils
+from magellanic.lfutils import read_lfs
+import magellanic.regionsed as rsed
+import magellanic.mcutils as utils
 
 
 wlengths = {'2': '{4.5\mu m}',
