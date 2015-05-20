@@ -31,7 +31,55 @@ def agb_select_function_villaume(isoc_dat, **extras):
     print(select.sum())
     return isoc_dat[select]
 
-def agb_select_function_cmd(isoc_dat, cloud='lmc', **extras):
+def agb_select_function_cmd(isoc_dat, cloud='lmc', **kwargs):
+    
+    c, o, boyer, xagb = boyer_cmd_classes(isoc_dat, **kwargs)
+    return isoc_dat[boyer | xagb]
+    
+def boyer_cmd_classes(isoc_dat, cloud='lmc', **extras):
+    """Boyer cmd cuts.
+    """
+    if cloud == 'lmc':
+        cdat = {'trgb_k': 11.94, 'trgb_i1':11.9, 'dm':18.49, 'met':-0.3}
+        delta_dm = 0.4
+    elif cloud =='smc':
+        cdat = {'trgb_k': 12.7, 'trgb_i1':12.6, 'dm':18.89, 'met':-0.7}
+        delta_dm = 0.0
+
+    j = isoc_dat['2mass_j'] + cdat['dm']
+    k = isoc_dat['2mass_ks'] + cdat['dm']
+    i1 = isoc_dat['irac_1'] + cdat['dm']
+    i4 = isoc_dat['irac_4'] + cdat['dm']
+
+    # Cioni
+    k0, k1, k2 = cioni_klines(j-k, **cdat)
+    cstar = (k < k0) &  (k > k2)
+    ostar = (k < k0) &  (k > k2) & ~cstar
+    cioni = ostar | cstar
+    
+    # Boyer trgb cut
+    boyer = (cioni &
+             ((k < cdat['trgb_k']) | (i1 < cdat['trgb_i1']))
+            )
+    # Boyer xagb cut
+    xagb = ((i1 < cdat['trgb_i1']) &
+            (((j-i1) > 3.1) | ((i1-i4) > 0.8)) &
+            ((i4 + delta_dm) < (12.0 - 0.43 * (j-i4))) &
+            ((i4 + delta_dm) < (11.5 - 1.33 * (i1-i4)))
+            )
+    return cstar, ostar, boyer, xagb
+        
+def cioni_klines(color, met, dm, **extras):
+    """The cioni classification criteria.  `color` should be j-ks
+    """
+    # We add the differential distance modulus to K0 but not to K1 or K2
+    #
+    k0 = -0.48 * color + 13.022 + 0.056 * met + (dm - 18.49)
+    k1 = -13.333 * color + 25.293 + 1.568 * met 
+    k2 = -13.333 * color + 29.026 + 1.568 * met
+    return k0, k1, k2
+
+def agb_select_function_cmd_old(isoc_dat, cloud='lmc', **extras):
     """Select AGBs using CMD cuts.
     """
     if cloud.lower() == 'lmc':
@@ -40,11 +88,11 @@ def agb_select_function_cmd(isoc_dat, cloud='lmc', **extras):
         return agb_select_function_cmd_smc(isoc_dat, **extras)
     else:
         raise ValueError('Invalid cloud designation')
-    
+
 def agb_select_function_cmd_lmc(isoc_dat, **extras):
     """Trying to follow the Boyer et al. 2011 color cuts for AGB stars
     """
-    trgb = {'k': 11.94,'i1':11.9, 'dm':18.53}
+    trgb = {'k': 11.94,'i1':11.9, 'dm':18.49}
     #difference between the SMC and LMC distance moduli
     delta_dm = 0.40
     
@@ -85,10 +133,11 @@ def agb_select_function_cmd_smc(isoc_dat, **extras):
     """Trying to follow the Boyer et al. 2011 color cuts for AGB stars
     For the SMC
     """
-    trgb = {'k': 12.6, 'i1':12.6, 'dm':18.92}
+    trgb = {'k': 12.7, 'i1':12.6, 'dm':18.89}
     #difference between the SMC and LMC distance moduli
     delta_dm = -0.40
     #metallicity effect on j-k color
+    # 0.056 * Z  (Z_LMC = -0.3, Z_SMC = -0.7)
     delta_jk = -0.05
     
     j = isoc_dat['2mass_j'] + trgb['dm']
@@ -101,8 +150,10 @@ def agb_select_function_cmd_smc(isoc_dat, **extras):
             (i4 < (12.0 - 0.43 * (j-i4))) &
             ((i4 < (11.5 - 1.33 * (i1-i4))) | (((i1-i4) > 3) & (i4 < 7.51)))
             )
-
+    #
+        
     # Cioni 2006a (LMC) cuts adjusted for distance and metallicity
+    
     cioni = (((k + delta_dm) < (-0.48 * (j - k + delta_jk) + 13)) &
               ((k + delta_dm) > (-13.33 * (j - k + delta_jk) + 24.666))
             )
@@ -145,6 +196,15 @@ def sps_expected(isoc, esfh):
 def make_freq_prediction(cloudname, esfh, sps=None,
                          select_function=agb_select_function,
                          **kwargs):
+
+    if sps is None:
+        import fsps
+        sps = fsps.StellarPopulation(compute_vega_mags=True)
+        sps.params['sfh'] = 0
+        sps.params['imf_type'] = 0
+        sps.params['tpagb_norm_type'] = 2 #VCJ
+        sps.params['add_agb_dust_model'] = True
+        sps.params['agb_dust'] = 1.0
 
     for k, v in kwargs.iteritems():
         try:

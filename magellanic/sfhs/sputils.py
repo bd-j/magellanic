@@ -175,7 +175,7 @@ def sfh_weights(lt, sfr, ssp_ages, lookback_time=0, **extras):
     :param ssp_ages: ndarray, shape (nage)
         The ages at which you want weights.  Linear yrs.
 
-    :param target_lt: scalar or ndarray, shape (ntarg)
+    :param lookback_time: scalar or ndarray, shape (ntarg)
         The lookback time(s) at which to obtain the spectrum. In yrs.
 
     :returns aw: ndarray, shape(ntarg, nage)

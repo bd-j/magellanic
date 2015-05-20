@@ -116,10 +116,12 @@ if __name__ == "__main__":
     except:
         bias = False
         print('not adding bias')
-    #extralabel, agbsel = '_C', lambda x: x[-1] == 'C'
+    #extralabel, agbsel = '_CX', lambda x: ('C' in x) or ('X' in x)#x[-1] == 'C'
+    extralabel, agbsel = '_C', lambda x: ('C' in x) #x[-1] == 'C'
+    #extralabel, agbsel = '_X', lambda x: ('X' in x) #x[-1] == 'C'
     #extralabel, agbsel = '_O', lambda x: x[-1] == 'O'
     #extralabel, agbsel = '_X', lambda x: 'X' in x 
-    extralabel, agbsel = '_All_cb_noRS', None
+    #extralabel, agbsel = '_All_cb_noRS', None
     rname, mass, N, esfh = load_data(cloud, agbtype=agbsel, badenes=True)
     time = (esfh['t1'] + esfh['t2']) / 2
     nage, nreg = mass.shape
@@ -200,7 +202,8 @@ if __name__ == "__main__":
              'esfh':esfh,
              'cloud':cloud,
              'mass':mass,
-             'N': N}
+             'N': N,
+             'bias':bias}
 
     #tfig = triangle.corner(hsampler.chain)
     with open('chains/{0}{1}_chain.p'.format(cloud.lower(), extralabel), 'wb') as f:

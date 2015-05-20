@@ -1,10 +1,10 @@
 import numpy as np
 import pickle, acor, triangle, sys
 import matplotlib.pyplot as pl
-import sps_agb_freq as sfreq
+from magellanic import sps_freq as sfreq
 from scipy.special import erf
 
-def plot_pdfs(result, bdat):
+def plot_pdfs(result, bdat=None):
     """ PDFs for theta
     """
     fig, axes = pl.subplots(4,4, sharex=True, figsize=(12, 8))
@@ -14,12 +14,13 @@ def plot_pdfs(result, bdat):
     #            histtype='stepfilled', alpha=0.5)
         ax.hist(result['chain'][2500:,i], bins=50, label='BDJ w/CB coo',
                 histtype='stepfilled', alpha=0.5)
-        ax.axvline(bdat[i, 3], label='CB', color='red')
-        ax.axvline(bdat[i, 4], linestyle='--', color='red')
-        ax.axvline(bdat[i, 5], linestyle='--', color='red')
-        ax.axvline(bdat[i, 6], linestyle=':', color='red')
-        ax.axvline(bdat[i, 7], linestyle=':', color='red')
-        ax.set_xlabel(r'$\theta$({0}-{1})'.format(bdat[i,1], bdat[i,2]))
+        if bdat is not None:
+            ax.axvline(bdat[i, 3], label='CB', color='red')
+            ax.axvline(bdat[i, 4], linestyle='--', color='red')
+            ax.axvline(bdat[i, 5], linestyle='--', color='red')
+            ax.axvline(bdat[i, 6], linestyle=':', color='red')
+            ax.axvline(bdat[i, 7], linestyle=':', color='red')
+            ax.set_xlabel(r'$\theta$({0}-{1})'.format(bdat[i,1], bdat[i,2]))
         ax.set_xlim(0, 2e-4)
     fig.axes[0].legend(loc=0, prop={'size':8})
     fig.show()
@@ -83,14 +84,16 @@ def overplot_sps(result, fax, stype='cmd', **kwargs):
     bfig, baxes = fax
     if stype == 'cmd':
         sfunc = sfreq.agb_select_function_cmd
-    else:
+    elif stype == 'phase':
         sfunc = sfreq.agb_select_function
+    else:
+        sfunc = stype
         
     agbtype = {'MG08':0,'CG10':1,'VCJ':2}
     for aname, atype in agbtype.iteritems():
         nex, zact = sfreq.make_freq_prediction(result['cloud'], result['esfh'],
                                             select_function=sfunc,
-                                            tpagb_norm_type=atype)
+                                            tpagb_norm_type=atype, **kwargs)
         baxes.plot(nex, '-o', label=aname)
     return bfig, baxes
 
@@ -120,20 +123,34 @@ def gaussfit_lnprob(theta, samples=0):
     lnp = -0.5 * ((samples-mu)**2/(sigma**2) + 2.0 * np.log(Ainv))
     return lnp
 
+
 if __name__ == "__main__":
     
-    filename = 'chains/lmc_All_cb_chain.p'
-    with open(filename) as f:
-        result = pickle.load(f)
-    #filename2 = 'tex/chains/lmc_All_cb_noRS_chain.p'
-    #with open(filename2) as f:
-    #    result2 = pickle.load(f)
     badenes_file = 'tex/badenes_results/LMC_MCMC_DTD_AGB_Unbinned_Iter000.dat'
     bdat = np.loadtxt(badenes_file, skiprows=1)
 
-    #fig, fax = plot_pdfs(result, bdat)
+    import fsps
+    sps = fsps.StellarPopulation(compute_vega_mags=True)
+    sps.params['sfh'] = 0
+    sps.params['imf_type'] = 0
+    sps.params['tpagb_norm_type'] = 2 #VCJ
+    sps.params['add_agb_dust_model'] = True
+    sps.params['agb_dust'] = 1.0
+
+    #filename = 'chains/lmc_All_cb_noRS_chain.p'
+    #filename = 'chains/smc_All_chain.p'
+    filename = 'chains/lmc_CX_chain.p'
+    with open(filename) as f:
+        result = pickle.load(f)
+    
+    def select(isoc_dat, **kwargs):
+        c, o, boyer, xagb = sfreq.boyer_cmd_classes(isoc_dat, **kwargs)    
+        return isoc_dat[c | xagb]
+        
+    #fig, fax = plot_pdfs(result, bdat=bdat)
     #efig, eax = plot_chain(result)
-    bfig, bax = plot_theta_time(result, bdat=bdat,
-                                clr='black')
-    bfig, bax = overplot_sps(result, (bfig, bax), stype='phase')
+    bfig, bax = plot_theta_time(result, #bdat=bdat,
+                                clr='black', sps=sps)
+    bfig, bax = overplot_sps(result, (bfig, bax), stype=select)
+    bax.legend(loc=0)
     bfig.show()
