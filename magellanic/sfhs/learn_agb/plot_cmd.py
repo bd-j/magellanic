@@ -56,23 +56,25 @@ if __name__ == "__main__":
     from learn_agb import load_data
     cloud='smc'
     if cloud =='lmc':
-        dm, z = 18.49, 0.008
+        dm, z, met = 18.49, 0.008, -0.7
     elif cloud =='smc':
-        dm, z = 18.89, 0.004
+        dm, z, met = 18.89, 0.004, -0.3
         
     _, mass, nex, esfh = load_data(cloud)
     
-    color = ['2mass_j', '2mass_ks', np.arange(-1, 4.0, 0.1)]
-    mag = ['2mass_ks', np.arange(7, 14, 0.1) - dm]
+    color = ['2mass_j', '2mass_ks', np.arange(-1, 4.0, 0.01)]
+    mag = ['2mass_ks', np.arange(7, 14, 0.025) - dm]
 
     sps.params['zmet'] = np.argmin(np.abs(sps.zlegend - z)) + 1
     full_isoc = sps.isochrones()
     #isoc_dat = select_function(full_isoc)
     isoc_dat = full_isoc
+    isoc_phase = sps_freq.agb_select_function(full_isoc)
 
-    
     pcmd, ages = partial_cmds(isoc_dat, tuple(color), tuple(mag))
     lpcmds = combine_partial_cmds(pcmd, ages, esfh)
+    pcmd_phase, ages_phase = partial_cmds(isoc_phase, tuple(color), tuple(mag))
+    lpcmds_phase = combine_partial_cmds(pcmd_phase, ages_phase, esfh)
 
     mtot = mass.sum(axis=-1)
     cmd_tot = lpcmds * mtot[:,None,None]
@@ -85,12 +87,20 @@ if __name__ == "__main__":
     mlabels = np.array(['{0:3.1f}'.format(l+dm) for l in mag[-1]])
     
     
-    fig, axes = pl.subplots(1,2)
-    im = axes[0].imshow(np.log10(cmd_tot[-4:,:,:].sum(axis=0).T), interpolation='nearest')
-    axes[0].set_xticks(xticks)
-    axes[0].set_xticklabels(clabels[xticks])
-    axes[0].set_yticks(yticks)
-    axes[0].set_yticklabels(mlabels[yticks])
-    axes[0].set_xlabel('J-K')
-    axes[0].set_ylabel('K')
-    
+    fig, axes = pl.subplots(1, 2)
+    im = axes[0].imshow(np.log10(cmd_tot[0:,:,:].sum(axis=0).T),
+                        interpolation='nearest',
+                        extent=[color[-1].min(), color[-1].max(), mag[-1].max()+dm, mag[-1].min()+dm])
+    im = axes.imshow(np.log10((lpcmds_phase * mtot[:,None, None]).sum(axis=0).T),
+                        interpolation='nearest',
+                        extent=[color[-1].min(), color[-1].max(), mag[-1].max()+dm, mag[-1].min()+dm])
+
+    [ax.set_xlabel('J-K') for ax in axes]
+    [ax.set_ylabel('K') for ax in axes]
+
+    k0, k1, k2 = sps_freq.cioni_klines(color[-1], met, dm)
+    [ax.plot(color[-1], k, label = 'K1') for ax in axes
+     for k, l in zip([k0, k1, k2], ['K0',' K1', 'K2'])]
+    [ax.set_ylim(mag[-1].max()+dm, mag[-1].min() + dm) for ax in axes]
+
+    fig.show()

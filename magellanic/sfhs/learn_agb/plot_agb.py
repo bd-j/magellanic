@@ -83,7 +83,7 @@ def overplot_sps(result, fax, stype='cmd', **kwargs):
     """
     bfig, baxes = fax
     if stype == 'cmd':
-        sfunc = sfreq.agb_select_function_cmd
+        sfunc = sfreq.agb_select_function_cmd_old
     elif stype == 'phase':
         sfunc = sfreq.agb_select_function
     else:
@@ -139,13 +139,13 @@ if __name__ == "__main__":
 
     #filename = 'chains/lmc_All_cb_noRS_chain.p'
     #filename = 'chains/smc_All_chain.p'
-    filename = 'chains/lmc_CX_chain.p'
+    filename = 'chains/lmc_All_chain.p'
     with open(filename) as f:
         result = pickle.load(f)
     
     def select(isoc_dat, **kwargs):
         c, o, boyer, xagb = sfreq.boyer_cmd_classes(isoc_dat, **kwargs)    
-        return isoc_dat[c | xagb]
+        return isoc_dat[boyer | xagb]
         
     #fig, fax = plot_pdfs(result, bdat=bdat)
     #efig, eax = plot_chain(result)
@@ -153,4 +153,7 @@ if __name__ == "__main__":
                                 clr='black', sps=sps)
     bfig, bax = overplot_sps(result, (bfig, bax), stype=select)
     bax.legend(loc=0)
+    title = filename.replace('chains/','').replace('_chain.p','')
+    bax.set_title(title)
     bfig.show()
+    bfig.savefig('tex/figures/'+title+'.pdf')

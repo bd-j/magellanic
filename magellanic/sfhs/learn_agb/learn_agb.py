@@ -104,8 +104,6 @@ def load_data(cloud, agbtype=None, **kwargs):
     example_sfh = total_sfh    
     return rnames, np.array(mass).T, np.array(N), example_sfh
 
-
-
 if __name__ == "__main__":
 
     cloud = sys.argv[1].lower()  #'lmc' | 'smc'
@@ -116,12 +114,13 @@ if __name__ == "__main__":
     except:
         bias = False
         print('not adding bias')
-    #extralabel, agbsel = '_CX', lambda x: ('C' in x) or ('X' in x)#x[-1] == 'C'
-    extralabel, agbsel = '_C', lambda x: ('C' in x) #x[-1] == 'C'
-    #extralabel, agbsel = '_X', lambda x: ('X' in x) #x[-1] == 'C'
-    #extralabel, agbsel = '_O', lambda x: x[-1] == 'O'
-    #extralabel, agbsel = '_X', lambda x: 'X' in x 
+    #extralabel, agbsel = '_CX', lambda x: ('C' in x) or ('X' in x.upper())
+    #extralabel, agbsel = '_C', lambda x: ('C' in x) 
+    #extralabel, agbsel = '_X', lambda x: ('X' in x.upper()) 
+    #extralabel, agbsel = '_O', lambda x: ('O' in x.upper())
     #extralabel, agbsel = '_All_cb_noRS', None
+    extralabel, agbsel = '_All', None
+    
     rname, mass, N, esfh = load_data(cloud, agbtype=agbsel, badenes=True)
     time = (esfh['t1'] + esfh['t2']) / 2
     nage, nreg = mass.shape
