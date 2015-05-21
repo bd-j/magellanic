@@ -104,6 +104,11 @@ def load_data(cloud, agbtype=None, **kwargs):
     example_sfh = total_sfh    
     return rnames, np.array(mass).T, np.array(N), example_sfh
 
+
+def run_hmc():
+    pass
+
+
 if __name__ == "__main__":
 
     cloud = sys.argv[1].lower()  #'lmc' | 'smc'

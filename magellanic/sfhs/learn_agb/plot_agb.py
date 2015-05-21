@@ -1,7 +1,7 @@
 import numpy as np
 import pickle, acor, triangle, sys
 import matplotlib.pyplot as pl
-from magellanic import sps_freq as sfreq
+from magellanic import cmdutils as sfreq
 from scipy.special import erf
 
 def plot_pdfs(result, bdat=None):

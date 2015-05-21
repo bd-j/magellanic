@@ -1,7 +1,68 @@
 import numpy as np
 import mcutils, sputils
 
-def agb_select_function(isoc_dat, **extras):
+
+def isocdata_to_cmd(isoc_dat, color, mag):
+    """Make a CMD from isochrone data.
+
+    :param isoc_data:
+        The isochrone data, as returned by
+        StellarPopulation.isochrones().  It should be prefiltered by
+        age and perhaps stellar type (phase).
+
+    :param color:
+        A tuple giving the bandnames and bin edges for the color.  It
+        should have the form ``('band1', 'band2', bins)`` where
+        ``bins`` is ndarray of bin edges and ``'band1'`` and
+        ``'band2'`` are the names of the FSPS filters that form color
+        'band1-band2'.
+        
+    :param mag:
+        A tuple of absolute magnitude bins of the form ``('band',bins)``
+        where bins is an ndarray of bin edges and `band' is the filter.
+
+    :returns cmd:
+        A 2-d numpy array of shape (nc, nm) giving the color magnitude
+        diagram
+    """
+    c = isoc_dat[color[0]] - isoc_dat[color[1]]
+    m = isoc_dat[mag[0]]
+    cmd, _, _ = np.histogram2d(c, m, bins=[color[2], mag[1]],
+                         weights=10**isoc_dat['log(weight)'])
+    return cmd
+
+def partial_cmds(isoc, color, mag):
+    agecol = 'age'
+    ages = np.unique(isoc[agecol])
+    cmds = []
+    for age in ages:
+        thisage = isoc[agecol] == age
+        cmds.append(isocdata_to_cmd(isoc[thisage], color, mag))
+    cmds = np.array(cmds)
+    oo = np.argsort(ages)
+    
+    return cmds[oo, :,:], ages[oo]
+
+def sps_expected(isoc, esfh):
+    """
+    :param isoc:
+        An isochrone as a numpy structured array, as returned by
+        fsps.StellarPopulation.isochrones().  It must have a
+        ``log(weight)`` field.
+        
+    :returns ssp_ages:
+        The ages of the SSPs, log of yrs
+
+    :returns ssp_nexpected:
+        The sum of the imf_weights for isochrone points with this age.
+    """
+    logages = isoc['age']
+    ssp_ages = np.unique(logages)
+    total_weights = [(10**(isoc[logages == thisage]['log(weight)'])).sum() for
+                     thisage in ssp_ages]
+    return ssp_ages, np.array(total_weights)
+
+def agb_select_function(isoc_dat, composition=0, **extras):
     """
     Here's a function that selects certain rows from the full
     isochrone data and returns them.  The selection criteria can
@@ -12,6 +73,10 @@ def agb_select_function(isoc_dat, **extras):
     select = ( #(isoc_dat['logt'] < np.log10(4000.0)) &
                (isoc_dat['phase'] == 5.0)
                )
+    if composition < 0:
+        select = select & (isoc_dat['composition'] < -composition)
+    elif composition > 0:
+        select = select & (isoc_dat['composition'] > composition)
     print(select.sum())
     return isoc_dat[select]
 
@@ -28,6 +93,7 @@ def agb_select_function_villaume(isoc_dat, **extras):
                (isoc_dat['phase'] != 6.0) &
                (isoc_dat['age'] > 6)
                )
+    
     print(select.sum())
     return isoc_dat[select]
 
@@ -172,25 +238,6 @@ def agb_select_function_cmd_smc(isoc_dat, **extras):
     select = boyer | xagb
     
     return isoc_dat[select]          
-
-def sps_expected(isoc, esfh):
-    """
-    :param isoc:
-        An isochrone as a numpy structured array, as returned by
-        fsps.StellarPopulation.isochrones().  It must have a
-        ``log(weight)`` field.
-        
-    :returns ssp_ages:
-        The ages of the SSPs, log of yrs
-
-    :returns ssp_nexpected:
-        The sum of the imf_weights for isochrone points with this age.
-    """
-    logages = isoc['age']
-    ssp_ages = np.unique(logages)
-    total_weights = [(10**(isoc[logages == thisage]['log(weight)'])).sum() for
-                     thisage in ssp_ages]
-    return ssp_ages, np.array(total_weights)
 
 
 def make_freq_prediction(cloudname, esfh, sps=None,
