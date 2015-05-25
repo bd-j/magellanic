@@ -43,7 +43,7 @@ def partial_cmds(isoc, color, mag):
     
     return cmds[oo, :,:], ages[oo]
 
-def sps_expected(isoc, esfh):
+def sps_expected(isoc):
     """
     :param isoc:
         An isochrone as a numpy structured array, as returned by

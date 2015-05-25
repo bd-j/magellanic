@@ -105,8 +105,36 @@ def load_data(cloud, agbtype=None, **kwargs):
     return rnames, np.array(mass).T, np.array(N), example_sfh
 
 
-def run_hmc():
-    pass
+def run_hmc(initial, model, length=100, nsegmax=20,
+            iterations=5000, adapt_iterations=100,
+            verbose=False):
+    """Run an HMC sampler for the given number of steps after a
+    certain amount of adaptation.  returns the sampler object.
+    """
+    hsampler = hmc.BasicHMC(verbose=verbose)
+    pos, prob, teps = hsampler.sample(initial, model, iterations=10, epsilon=None,
+                                     length=length, store_trajectories=False, nadapt=0)
+    eps = teps
+    
+    # Adapt epsilon while burning-in
+    for k in range(nsegmax):
+        #advance each sampler after adjusting step size
+        afrac = hsampler.accepted.sum()*1.0/hsampler.chain.shape[0]
+        if afrac >= 0.9:
+            shrink = 2.0
+        elif afrac <= 0.6:
+            shrink = 1/2.0
+        else:
+            shrink = 1.00
+        eps *= shrink
+        pos, prob, teps = hsampler.sample(hsampler.chain[-1,:], model, epsilon=eps, length=length,
+                                          iterations=adapt_iterations, store_trajectories=False, nadapt=0)
+
+    # Production
+    hsampler.sample(hsampler.chain[-1,:], model, iterations=iterations, length=length,
+                    epsilon=eps, store_trajectories=True)
+
+    return hsampler
 
 
 if __name__ == "__main__":
@@ -130,26 +158,17 @@ if __name__ == "__main__":
     time = (esfh['t1'] + esfh['t2']) / 2
     nage, nreg = mass.shape
 
-    fmt = '{:8s} {:7.0f}   ' + nage * ' {:<8.1f}'+'\n'
-    with open('chains/{0}{1}_data.dat'.format(cloud.lower(),extralabel),'w') as f:
-        f.write('Region     N_agb   '+'  '.join(['m_{}'.format(i) for i in range(nage)])+ '\n')
-        for i,rn in enumerate(rname):
-            f.write(fmt.format(rn, N[i], *mass[:,i]))
-
     if bias:
         #Add a constant offset term
         baseline = np.zeros(nreg) + mass.sum()/nreg/nage
         mass = np.concatenate([mass, baseline[None, :]])
-        #np.random.shuffle(N)
         time = np.array(time.tolist()+[time[-1]])
-    #sys.exit()
     
     nage, nreg = mass.shape
     
-    print('loaded data')
-    
+    # Set up the model and initial position
     model = LinearModel(mass, N)
-    hsampler = hmc.BasicHMC(verbose=False)
+    
     # Initial guess is that all age bins contribute equally
     initial = N.sum()/mass.sum()/nage
     initial = np.zeros(nage) +initial
@@ -163,39 +182,12 @@ if __name__ == "__main__":
     #initial = bdat[:,3]
 
     # Do some L-BFGS-B minimization?
-    
-    # HMC sampling
-    nsegmax = 20
-    iterations = 100
-    length = 100
-    alleps=[]
-    
-    print('starting sampling')
-    pos, prob, thiseps = hsampler.sample(initial, model, iterations=10, epsilon=None,
-                                    length=length, store_trajectories=False, nadapt=0)
-    eps = thiseps
 
-    # adapt epsilon while burning-in
-    for k in range(nsegmax):
-        #advance each sampler after adjusting step size
-        afrac = hsampler.accepted.sum()*1.0/hsampler.chain.shape[0]
-        if afrac >= 0.9:
-            shrink = 2.0
-        elif afrac <= 0.6:
-            shrink = 1/2.0
-        else:
-            shrink = 1.00
-        eps *= shrink
-        pos, prob, thiseps = hsampler.sample(hsampler.chain[-1,:], model,
-                                             iterations=iterations,
-                                             epsilon=eps, length=length,
-                                             store_trajectories=False, nadapt=0)
-    alleps.append(thiseps) #this should not have actually changed during the sampling
+    # HMC
+    hsampler = run_hmc(initial, model, length=100, nsegmax=20,
+                       iterations=5000, adapt_iterations=100)
 
-    # Production
-    hsampler.sample(hsampler.chain[-1,:], model, iterations=5000, length=100,
-                    epsilon=eps, store_trajectories=True)
-    
+    #Assemble and write output
     ptiles = np.percentile(hsampler.chain, [16, 50, 84], axis=0)
     median, minus, plus = ptiles[1,:], ptiles[1,:] - ptiles[0,:], ptiles[2,:] - ptiles[1,:]
     maxapost = hsampler.lnprob.argmax()
@@ -212,4 +204,10 @@ if __name__ == "__main__":
     #tfig = triangle.corner(hsampler.chain)
     with open('chains/{0}{1}_chain.p'.format(cloud.lower(), extralabel), 'wb') as f:
         pickle.dump(output, f)
+
+    fmt = '{:8s} {:7.0f}   ' + nage * ' {:<8.1f}'+'\n'
+    with open('chains/{0}{1}_data.dat'.format(cloud.lower(),extralabel),'w') as f:
+        f.write('Region     N_agb   '+'  '.join(['m_{}'.format(i) for i in range(nage)])+ '\n')
+        for i,rn in enumerate(rname):
+            f.write(fmt.format(rn, N[i], *mass[:,i]))
 
