@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as pl
 from scipy.interpolate import interp1d
 
-def isochrone_to_clfs(isoc, bands, select_function=None):
+def isochrone_to_clfs(isoc, bands, select_function=None, **kwargs):
     """
     :param isoc:
         The isochrone data, as returned by
@@ -18,7 +18,7 @@ def isochrone_to_clfs(isoc, bands, select_function=None):
     
     # If required apply selections
     if select_function is not None:
-        isoc = select_function(isoc)
+        isoc = select_function(isoc, **kwargs)
         
     # Loop over bands, generating the CLF for each band
     clfs = []

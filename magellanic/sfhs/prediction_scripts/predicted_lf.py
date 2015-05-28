@@ -15,7 +15,7 @@ except ImportError:
 
    
 def zsfh_to_obs(sfhlist, zlist, lfbandnames=None, select_function=None,
-                bandnames=None, sps=None, isocs=None):
+                bandnames=None, sps=None, isocs=None, **kwargs):
     """
     Go from a list of SFHs (one for each metallicity) to a broadband SED and set of
     luminosity functions for a stellar population.
@@ -52,7 +52,7 @@ def zsfh_to_obs(sfhlist, zlist, lfbandnames=None, select_function=None,
             "Zmet={1}".format(sps.zlegend[sps.params['zmet']-1],zmet))
 
         ldat = isochrone_to_clfs(copy.deepcopy(isoc), lfbandnames,
-                                 select_function=select_function)
+                                 select_function=select_function, **kwargs)
         all_lf_base += [ldat]
     #use the SSP CLFs to generate a total LF (for each band)
     for i, band in enumerate(lfbandnames):
@@ -122,7 +122,8 @@ def make_clfs(cloud, tpagb_norm_type=2, select_function=None,
     sed, clfs = zsfh_to_obs(total_sfhs, total_zmet,
                             lfbandnames=lffilters,
                             bandnames=sedfilters, sps=sps,
-                            select_function=select_function)
+                            select_function=select_function,
+                            cloud=cloud, **sps_kwargs)
 
     return clfs
 

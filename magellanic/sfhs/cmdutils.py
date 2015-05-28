@@ -97,7 +97,7 @@ def agb_select_function_villaume(isoc_dat, **extras):
     print(select.sum())
     return isoc_dat[select]
 
-def agb_select_function_cmd(isoc_dat, cloud='lmc', **kwargs):
+def agb_select_function_cmd(isoc_dat, **kwargs):
     
     c, o, boyer, xagb = boyer_cmd_classes(isoc_dat, **kwargs)
     return isoc_dat[boyer | xagb]
