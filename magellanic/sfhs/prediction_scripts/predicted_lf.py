@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib.pyplot as pl
 
 import astropy.io.fits as pyfits
-import magellanic.regionsed as rsed
-from magellanic.lfutils import *
+import magellanic.sfhs.regionsed as rsed
+from magellanic.sfhs.lfutils import *
 import fsps
 try:
     from sedpy import observate
@@ -128,10 +128,10 @@ def make_clfs(cloud, tpagb_norm_type=2, select_function=None,
     return clfs
 
 if __name__ == '__main__':
-    
-    from sps_freq import select_function as phase_select
-    from sps_freq import select_function_villaume as phase_select_v
-    from sps_freq import cmd_select_function_lmc, cmd_select_function_smc
+    import as cutils
+    from magellanic.sfhs.cmdutils import select_function as phase_select
+    from magellanic.sfhs.cmdutils import select_function_villaume as phase_select_v
+    from magellanic.sfhs.cmdutils import cmd_select_function_lmc, cmd_select_function_smc
     import datautils
     
     tptypes = [0,1,2]
