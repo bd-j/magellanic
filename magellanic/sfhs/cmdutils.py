@@ -120,7 +120,7 @@ def boyer_cmd_classes(isoc_dat, cloud='lmc', **extras):
     # Cioni
     k0, k1, k2 = cioni_klines(j-k, **cdat)
     cstar = (k < k0) &  (k > k2)
-    ostar = (k < k0) &  (k > k2) & ~cstar
+    ostar = (k < k0) &  (k > k1) & ~cstar
     cioni = ostar | cstar
     
     # Boyer trgb cut
