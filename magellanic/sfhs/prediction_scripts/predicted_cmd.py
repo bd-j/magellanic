@@ -63,7 +63,7 @@ def rebin_partial_cmds(pcmds, ages, sfh):
 
 
 def load_data(cloud):
-    """Read the Harris and Zaritsky data.
+    """Read the Harris and Zaritsky SFH data.
 
     :param cloud:
         'lmc' or 'smc'
@@ -117,11 +117,10 @@ if __name__ == "__main__":
     # Cloud SFHs
     cloud, dm = 'smc', 18.89
     mass, _, mets, esfh = load_data(cloud)
-    mtot = mass.sum(axis=-1)
 
     # Choose colors, mags and define isochrone filtering
     colors = 2 * [['2mass_j', '2mass_ks', np.arange(-1, 4.0, 0.01) ]]
-              
+    # here we are doing j and ks but with the same j-k color in both cases          
     mags = [['2mass_ks', np.arange(7, 14, 0.025) - dm],
             ['2mass_j', np.arange(7, 14, 0.025) - dm]
             ]
@@ -136,19 +135,49 @@ if __name__ == "__main__":
     # the SFH for that metallicity.  Outer loop should always be
     # metallicity to avoid excessive calls to sps.isochrones(), which
     # are expensive.
-    cmd = len(mets) * [[]]
+    cmd = []
     for i,z in enumerate(mets):
-        # Total cloud SFH for this metallicity
+        cmd.append([])
+        # Total (summed over regions) cloud SFH for this metallicity
         mtot = mass[:,i,:].sum(axis=0)
-        # Isochrone data for this metallicity
+        
+        # Isochrone data for this metallicity, filtered
         sps.params['zmet'] = np.argmin(np.abs(sps.zlegend - z)) + 1
         full_isoc = sps.isochrones()
-        isoc_dat = select_function(full_isoc)
-        # Here you can loop over anything that doesn't affect the generation of the isochrone data
+
+        # Here you can loop over anything that doesn't affect the
+        # generation of the isochrone data to make cmds
         for color, mag in zip(colors, mags):
+            isoc_dat = select_function(full_isoc)
             cmd_zc = make_cmd(isoc_dat, tuple(color), tuple(mag), mtot, esfh)
             cmd[i].append(cmd_zc)
-        
-    
-    
- 
+
+    # This is now an array of shape (nmet, nband, ncolor, nmag)
+    cmd = np.array(cmd)
+
+    ##### OUTPUT #######
+    # Plot output CMDs
+    cfig, caxes = pl.subplots( 1, len(mags) )
+    for j, (color, mag) in enumerate(zip(colors, mags)):
+        ax = caxes.flat[j]
+        im = ax.imshow(np.log10(cmd[:,j,...].sum(axis=0).T), interpolation='nearest',
+                       extent=[color[-1].min(), color[-1].max(),
+                               mag[-1].max()+dm, mag[-1].min()+dm])
+        ax.set_xlabel('{0} - {1}'.format(color[0], color[1]))
+        ax.set_ylabel('{0}'.format(mag[0]))
+
+    cfig.show()
+
+    # Plot output CLFs
+    lfig, laxes = pl.subplots()
+    for j, mag in enumerate(mags):
+        # marginalize over metallicity and color
+        lf = cmd[:,j,:,:].sum(axis=0).sum(axis=-2)
+        clf = np.cumsum(lf)
+        x = mag[-1][:-1]
+        laxes.plot(x + dm, clf, label=mag[0])
+    laxes.set_xlabel('m')
+    laxes.set_ylabel('n(<m)')
+    laxes.set_yscale('log')
+    laxes.legend(loc=0)
+    lfig.show()
