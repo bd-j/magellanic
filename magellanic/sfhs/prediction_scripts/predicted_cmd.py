@@ -11,7 +11,7 @@ def make_cmd(isoc_dat, color, mag, mtot, esfh):
     :param isoc_dat:
         Isochrone data as a structured array.  This is usually the
         result of fsps.StellarPopulation().isochrones().  If only
-        certain stellar types are desired int he CMD then isoc_dat
+        certain stellar types are desired in the CMD then isoc_dat
         should be pre-filtered.
 
     :param color:
@@ -26,7 +26,8 @@ def make_cmd(isoc_dat, color, mag, mtot, esfh):
         where bins is an ndarray of bin edges and `band' is the filter.
 
     :param mtot:
-        The SFH given in terms of the mass formed in each bin, ndarray.
+        The SFH given in terms of the mass formed in each age bin,
+        ndarray.
 
     :param esfh:
         A structured array with the fields ``'t1'`` and ``'t2'``
@@ -34,7 +35,8 @@ def make_cmd(isoc_dat, color, mag, mtot, esfh):
         lookback time, log(yrs) )
 
     :returns cmd:
-        Array of total weights (N_stars) in bins of color and magnitude.
+        Array of total number of stars (weight*mtot) in bins of color
+        and magnitude.
     """
     pcmd, ages = cmdutils.partial_cmds(isoc_dat, tuple(color), tuple(mag))
     lpcmds = rebin_partial_cmds(pcmd, ages, esfh)
@@ -62,24 +64,28 @@ def rebin_partial_cmds(pcmds, ages, sfh):
     return lores_cmds
 
 
-def load_data(cloud):
+def load_data(cloud='lmc'):
     """Read the Harris and Zaritsky SFH data.
 
     :param cloud:
-        'lmc' or 'smc'
+        String, 'lmc' or 'smc'
     
     :returns mass:
         An array of masses formed in each (region, metallicity, age).
-        ndarray of shape (nreg, nmet, nage)
+        ndarray of shape (nreg, nmet, nage), units of M_sun.
 
     :returns rnames:
-        A list of region names
+        A list of region names.
 
     :returns mets:
-        a list of metallicities used in the SFHs,
+        A list of metallicities used in the SFHs, linear units where
+        solar=0.019.
 
     :returns example_sfhs:
-        and a structure giving the temporal binning scheme (the ages)
+        A structure giving the temporal binning scheme (i.e. the
+        ages), with the beginning and end of each age bin given by the
+        fileds ``'t1'`` and ``'t2'`` respectively, in units of
+        log(years).
     """
     from magellanic import datautils
     import sedpy.ds9region as ds9
@@ -119,20 +125,25 @@ if __name__ == "__main__":
     cloud, dm = 'lmc', 18.49
     mass, _, mets, esfh = load_data(cloud)
 
-    # Choose colors, mags
+    # Define a function for selecting certain "stars" from the
+    # isochrone.  Only stars selected by this function will contribute
+    # to the CMD
+    def select_function(isochrones, cloud=None):
+        """Select only certain stars from the isochrones.
+        """
+        # No filtering  
+        return isochrones
+    
+    # Choose colors, mags as lists of lists.  The inner lists should
+    # be passable as ``color`` and ``mag`` to the make_cmd() method
+    # defined above.
     # Here we are doing j and ks but with the same j-k color in both
     # cases.
     colors = 2 * [['2mass_j', '2mass_ks', np.arange(-1, 4.0, 0.01) ]]
         
     mags = [['2mass_ks', np.arange(7, 14, 0.025) - dm],
             ['2mass_j', np.arange(7, 14, 0.025) - dm]
-            ]
-            
-    def select_function(isochrones, cloud=None):
-        """Select only certain stars from the isochrones.
-        """
-        # No filtering  
-        return isochrones
+            ]         
 
     # Build partial CMDs for each metallicity and project them onto
     # the SFH for that metallicity.  Outer loop should always be
@@ -144,19 +155,20 @@ if __name__ == "__main__":
         # Total (summed over regions) cloud SFH for this metallicity
         mtot = mass[:,i,:].sum(axis=0)
         
-        # Isochrone data for this metallicity, filtered
+        # Isochrone data for this metallicity
         sps.params['zmet'] = np.argmin(np.abs(sps.zlegend - z)) + 1
         full_isoc = sps.isochrones()
 
         # Here you can loop over anything that doesn't affect the
         # generation of the isochrone data to make cmds
         for color, mag in zip(colors, mags):
+            #filter the isochrone
             isoc_dat = select_function(full_isoc)
             cmd_zc = make_cmd(isoc_dat, tuple(color), tuple(mag), mtot, esfh)
             cmd[i].append(cmd_zc)
 
     # This makes an array of shape (nmet, nband, ncolor-1, nmag-1)
-    # NB this will not work if there are not the same number of bins
+    # NB: this will not work if there are not the same number of bins
     # in each color or in each mag, though you can still use ``cmd``
     # in list form in that case.
     cmd = np.array(cmd)
@@ -176,7 +188,7 @@ if __name__ == "__main__":
     cfig.show()
 
     # Plot output CLFs
-    # NB the CLF does not include stars brighter than the brightest
+    # NB: the CLF does not include stars brighter than the brightest
     # bin in mag, or outside the color range
     lfig, laxes = pl.subplots()
     for j, mag in enumerate(mags):
