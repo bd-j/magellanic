@@ -115,12 +115,15 @@ if __name__ == "__main__":
     sps.params['agb_dust'] = 1.0
 
     # Cloud SFHs
-    cloud, dm = 'smc', 18.89
+    #cloud, dm = 'smc', 18.89
+    cloud, dm = 'lmc', 18.49
     mass, _, mets, esfh = load_data(cloud)
 
-    # Choose colors, mags and define isochrone filtering
+    # Choose colors, mags
+    # Here we are doing j and ks but with the same j-k color in both
+    # cases.
     colors = 2 * [['2mass_j', '2mass_ks', np.arange(-1, 4.0, 0.01) ]]
-    # here we are doing j and ks but with the same j-k color in both cases          
+        
     mags = [['2mass_ks', np.arange(7, 14, 0.025) - dm],
             ['2mass_j', np.arange(7, 14, 0.025) - dm]
             ]
@@ -128,7 +131,7 @@ if __name__ == "__main__":
     def select_function(isochrones, cloud=None):
         """Select only certain stars from the isochrones.
         """
-        # No filtering
+        # No filtering  
         return isochrones
 
     # Build partial CMDs for each metallicity and project them onto
@@ -152,10 +155,14 @@ if __name__ == "__main__":
             cmd_zc = make_cmd(isoc_dat, tuple(color), tuple(mag), mtot, esfh)
             cmd[i].append(cmd_zc)
 
-    # This is now an array of shape (nmet, nband, ncolor, nmag)
+    # This makes an array of shape (nmet, nband, ncolor-1, nmag-1)
+    # NB this will not work if there are not the same number of bins
+    # in each color or in each mag, though you can still use ``cmd``
+    # in list form in that case.
     cmd = np.array(cmd)
 
     ##### OUTPUT #######
+    
     # Plot output CMDs
     cfig, caxes = pl.subplots( 1, len(mags) )
     for j, (color, mag) in enumerate(zip(colors, mags)):
@@ -165,19 +172,22 @@ if __name__ == "__main__":
                                mag[-1].max()+dm, mag[-1].min()+dm])
         ax.set_xlabel('{0} - {1}'.format(color[0], color[1]))
         ax.set_ylabel('{0}'.format(mag[0]))
-
+        ax.set_title(cloud.upper())
     cfig.show()
 
     # Plot output CLFs
+    # NB the CLF does not include stars brighter than the brightest
+    # bin in mag, or outside the color range
     lfig, laxes = pl.subplots()
     for j, mag in enumerate(mags):
         # marginalize over metallicity and color
         lf = cmd[:,j,:,:].sum(axis=0).sum(axis=-2)
         clf = np.cumsum(lf)
-        x = mag[-1][:-1]
+        x = mag[-1][1:]
         laxes.plot(x + dm, clf, label=mag[0])
     laxes.set_xlabel('m')
-    laxes.set_ylabel('n(<m)')
+    laxes.set_ylabel('N(<m)')
     laxes.set_yscale('log')
+    laxes.set_title(cloud.upper())
     laxes.legend(loc=0)
     lfig.show()

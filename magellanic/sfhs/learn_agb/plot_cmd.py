@@ -36,7 +36,7 @@ def combine_partial_cmds(pcmds, ages, sfh):
 if __name__ == "__main__":
     
     from learn_agb import load_data
-    cloud='smc'
+    cloud='lmc'
     if cloud =='lmc':
         dm, z, met = 18.49, 0.008, -0.7
     elif cloud =='smc':
