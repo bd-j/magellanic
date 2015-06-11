@@ -139,10 +139,10 @@ if __name__ == "__main__":
     # defined above.
     # Here we are doing j and ks but with the same j-k color in both
     # cases.
-    colors = 2 * [['2mass_j', '2mass_ks', np.arange(-1, 4.0, 0.01) ]]
+    colors = 2 * [['2mass_j', '2mass_ks', np.linspace(-1, 4.0, 501) ]]
         
-    mags = [['2mass_ks', np.arange(7, 14, 0.025) - dm],
-            ['2mass_j', np.arange(7, 14, 0.025) - dm]
+    mags = [['2mass_ks', np.linspace(7, 14, 281) - dm],
+            ['2mass_j', np.linspace(7, 14, 281) - dm]
             ]         
 
     # Build partial CMDs for each metallicity and project them onto
@@ -203,3 +203,24 @@ if __name__ == "__main__":
     laxes.set_title(cloud.upper())
     laxes.legend(loc=0)
     lfig.show()
+
+    ##### Observed CMD #####
+    from magellanic.sfhs.datautils import cloud_cat, catalog_to_cmd
+    from copy import deepcopy
+    cat, cols = cloud_cat(cloud)
+    ofig, oaxes = pl.subplots( 1, len(mags) )
+    for j, (color, mag) in enumerate(zip(colors, mags)):
+        ax = oaxes.flat[j]
+        appmag = deepcopy(mag)
+        appmag[-1] += dm
+        ocmd = catalog_to_cmd(cat, color, appmag, catcols=cols)
+        im = ax.imshow(np.log10(ocmd.T), interpolation='nearest',
+                       extent=[color[-1].min(), color[-1].max(),
+                               appmag[-1].max(), appmag[-1].min()])
+        ax.set_xlabel('{0} - {1}'.format(color[0], color[1]))
+        ax.set_ylabel('{0}'.format(mag[0]))
+        ax.set_title('Obs ' + cloud.upper())
+    ofig.show()
+
+    
+    

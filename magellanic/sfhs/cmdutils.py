@@ -32,6 +32,30 @@ def isocdata_to_cmd(isoc_dat, color, mag):
     return cmd
 
 def partial_cmds(isoc, color, mag):
+    """Make a partial CMDs (i.e. a series of CMDs of SSPSs) from
+    isochrone data.
+
+    :param isoc_data:
+        The isochrone data, as returned by
+        StellarPopulation.isochrones().  It should be prefiltered by
+        stellar type (phase) if you want only the cmds for particular
+        stellar types.
+
+    :param color:
+        A tuple giving the bandnames and bin edges for the color.  It
+        should have the form ``('band1', 'band2', bins)`` where
+        ``bins`` is ndarray of bin edges and ``'band1'`` and
+        ``'band2'`` are the names of the FSPS filters that form color
+        'band1-band2'.
+        
+    :param mag:
+        A tuple of absolute magnitude bins of the form ``('band',bins)``
+        where bins is an ndarray of bin edges and `band' is the filter.
+
+    :returns cmds:
+        A 3-d numpy array of shape (nage, nc, nm) giving the binned
+        color magnitude diagrams for each age.
+    """
     agecol = 'age'
     ages = np.unique(isoc[agecol])
     cmds = []
@@ -42,6 +66,13 @@ def partial_cmds(isoc, color, mag):
     oo = np.argsort(ages)
     
     return cmds[oo, :,:], ages[oo]
+
+def rebin(a, shape):
+    """Rebin array to new shape.  New shape must be integer fractions
+    of the old shape
+    """
+    sh = shape[0],a.shape[0]//shape[0],shape[1],a.shape[1]//shape[1]
+    return a.reshape(sh).mean(-1).mean(1)
 
 def sps_expected(isoc):
     """
