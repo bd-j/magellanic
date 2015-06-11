@@ -6,20 +6,32 @@ from lfutils import *
 
 smccols = {'RA': 'RAJ2000',
            'DEC': 'DEJ2000',
-           'IRAC4': '__8_0_',
-           'IRAC2': '__4_5_',
-           'IRAC4_err': 'e__8_0_',
-           'IRAC2_err': 'e__4_5_',
+           'irac_4': '__8_0_',
+           'irac_2': '__4_5_',
+           'irac_1': '__3_6_',
+           'irac_4_err': 'e__8_0_',
+           'irac_2_err': 'e__4_5_',
+           'irac_1_err': 'e__3_6_',
+           '2mass_ks': 'Kmag',
+           '2mass_j': 'Jmag',
+           '2mass_ks_err': 'e_Kmag',
+           '2mass_j_err': 'e_Jmag',           
            'STARTYPE': 'Class',
            'agb_codes': ['C-AGB', 'O-AGB', 'x-AGB', 'aO-AGB'],#'FIR'],
            'corners': ''
           }
 lmccols = {'RA': 'RA',
            'DEC': 'DEC',
-           'IRAC4': 'IRAC4',
-           'IRAC2': 'IRAC2',
-           'IRAC4_err': 'DIRAC4',
-           'IRAC2_err': 'DIRAC2',
+           'irac_4': 'IRAC4',
+           'irac_2': 'IRAC2',
+           'irac_1': 'IRAC1',
+           'irac_4_err': 'DIRAC4',
+           'irac_2_err': 'DIRAC2',
+           'irac_1_err': 'DIRAC1',
+           '2mass_ks': 'TMASS_K',
+           '2mass_j': 'TMASS_J',
+           '2mass_ks_err': 'TMASS_DK',
+           '2mass_j_err': 'TMASS_DJ',           
            'STARTYPE': 'FLAG',
            'agb_codes': ['C', 'O', 'X', 'aO/C', 'aO/O'],# 'RS-C', 'RS-O', 'RS-X', 'RS-a'],
            'corners': ''
@@ -80,6 +92,34 @@ def cumulative_obs_lf(catalog, bandname):
     order = np.argsort(mag)
     return mag[order], np.arange(len(mag))
 
+def catalog_to_cmd(catalog, color, mag, catcols=None, **extras):
+    """Make a CMD from SAGE data.
+
+    :param catalog:
+        The catalog data, as returned by cloud_cat().  It should be
+        prefiltered stellar type (phase).
+
+    :param color:
+        A tuple giving the bandnames and bin edges for the color.  It
+        should have the form ``('band1', 'band2', bins)`` where
+        ``bins`` is ndarray of bin edges and ``'band1'`` and
+        ``'band2'`` are the names of the FSPS filters that form color
+        'band1-band2'.
+        
+    :param mag:
+        A tuple of absolute magnitude bins of the form ``('band',bins)``
+        where bins is an ndarray of bin edges and `band' is the filter.
+
+    :returns cmd:
+        A 2-d numpy array of shape (nc, nm) giving the color magnitude
+        diagram
+    """
+    if catcols is None:
+        catcols = {}
+    c = catalog[catcols[color[0]]] - catalog[catcols[color[1]]]
+    m = catalog[catcols[mag[0]]]
+    cmd, _, _ = np.histogram2d(c, m, bins=[color[2], mag[1]])
+    return cmd
 
 def bounding_hull(catalog, coldict, **extras):
     """Compute the convex hull for a catalog and return a string of
@@ -125,7 +165,7 @@ if __name__ == '__main__':
     clouds, agb_dust = ['smc', 'lmc'], 1.0
     for cloud in clouds:
 
-        bands = ['IRAC2', 'IRAC4']
+        bands = ['irac_2', 'irac_4']
         # Get the observed CLFs
         defstring = mcps_corners(cloud)
         region = ds9reg.Polygon(defstring)
