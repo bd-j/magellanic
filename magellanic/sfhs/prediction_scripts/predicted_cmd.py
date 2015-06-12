@@ -187,6 +187,27 @@ if __name__ == "__main__":
         ax.set_title(cloud.upper())
     cfig.show()
 
+
+    ##### Observed CMD #####
+    from magellanic.sfhs.datautils import cloud_cat, catalog_to_cmd
+    from copy import deepcopy
+    cat, cols = cloud_cat(cloud, convert=True)
+    ofig, oaxes = pl.subplots( 1, len(mags) )
+    for j, (color, mag) in enumerate(zip(colors, mags)):
+        ax = oaxes.flat[j]
+        appmag = deepcopy(mag)
+        appmag[-1] += dm
+        ocmd = catalog_to_cmd(cat, color, appmag, catcols=cols)
+        im = ax.imshow(np.log10(ocmd.T), interpolation='nearest',
+                       extent=[color[-1].min(), color[-1].max(),
+                               appmag[-1].max(), appmag[-1].min()],
+                        aspect='auto')
+        ax.set_xlabel('{0} - {1}'.format(color[0], color[1]))
+        ax.set_ylabel('{0}'.format(mag[0]))
+        ax.set_title('Obs ' + cloud.upper())
+    ofig.show()
+
+    
     # Plot output CLFs
     # NB: the CLF does not include stars brighter than the brightest
     # bin in mag, or outside the color range
@@ -202,25 +223,5 @@ if __name__ == "__main__":
     laxes.set_yscale('log')
     laxes.set_title(cloud.upper())
     laxes.legend(loc=0)
-    lfig.show()
+    #lfig.show()
 
-    ##### Observed CMD #####
-    from magellanic.sfhs.datautils import cloud_cat, catalog_to_cmd
-    from copy import deepcopy
-    cat, cols = cloud_cat(cloud)
-    ofig, oaxes = pl.subplots( 1, len(mags) )
-    for j, (color, mag) in enumerate(zip(colors, mags)):
-        ax = oaxes.flat[j]
-        appmag = deepcopy(mag)
-        appmag[-1] += dm
-        ocmd = catalog_to_cmd(cat, color, appmag, catcols=cols)
-        im = ax.imshow(np.log10(ocmd.T), interpolation='nearest',
-                       extent=[color[-1].min(), color[-1].max(),
-                               appmag[-1].max(), appmag[-1].min()])
-        ax.set_xlabel('{0} - {1}'.format(color[0], color[1]))
-        ax.set_ylabel('{0}'.format(mag[0]))
-        ax.set_title('Obs ' + cloud.upper())
-    ofig.show()
-
-    
-    

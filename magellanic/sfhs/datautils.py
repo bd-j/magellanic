@@ -115,7 +115,7 @@ def catalog_to_cmd(catalog, color, mag, catcols=None, **extras):
         diagram
     """
     if catcols is None:
-        catcols = {}
+        catcols = {color[0]:color[0], color[1]:color[1], mag[0]:mag[0]}
     c = catalog[catcols[color[0]]] - catalog[catcols[color[1]]]
     m = catalog[catcols[mag[0]]]
     cmd, _, _ = np.histogram2d(c, m, bins=[color[2], mag[1]])
@@ -147,7 +147,7 @@ def mcps_corners(cloud):
         corners = '70.0,-72.2,92,-72.2,90,-65.4,72.5,-65.4'
     return corners
 
-def cloud_cat(cloud):
+def cloud_cat(cloud, convert=False):
     """Shortcut method to give the catalog and coldict mapping for a
     given cloud.
     """   
@@ -158,6 +158,16 @@ def cloud_cat(cloud):
         cols = smccols
     elif c == 'lmc':
         cols = lmccols
+
+    if convert:
+        n = list(catalog.dtype.names)
+        for k,v in cols.iteritems():
+            if v in n:
+                n[n.index(v)] = k
+        dt = catalog.dtype
+        catalog = catalog.view(type=np.ndarray, dtype=dt)
+        catalog.dtype.names = tuple(n)
+        
     return catalog, cols
 
 if __name__ == '__main__':
