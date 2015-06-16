@@ -133,21 +133,22 @@ def agb_select_function_cmd(isoc_dat, **kwargs):
     c, o, boyer, xagb = boyer_cmd_classes(isoc_dat, **kwargs)
     return isoc_dat[boyer | xagb]
     
-def boyer_cmd_classes(isoc_dat, cloud='lmc', **extras):
+def boyer_cmd_classes(isoc_dat, cloud='lmc', is_dat_cat=False, **extras):
     """Boyer cmd cuts.
     """
-    if cloud == 'lmc':
+    if cloud.lower() == 'lmc':
         cdat = {'trgb_k': 11.94, 'trgb_i1':11.9, 'dm':18.49, 'met':-0.3}
         delta_dm = 0.4
-    elif cloud =='smc':
+    elif cloud.lower() =='smc':
         cdat = {'trgb_k': 12.7, 'trgb_i1':12.6, 'dm':18.89, 'met':-0.7}
         delta_dm = 0.0
 
-    j = isoc_dat['2mass_j'] + cdat['dm']
-    k = isoc_dat['2mass_ks'] + cdat['dm']
-    i1 = isoc_dat['irac_1'] + cdat['dm']
-    i4 = isoc_dat['irac_4'] + cdat['dm']
 
+    j = isoc_dat['2mass_j'] + cdat['dm'] * int(is_data_cat)
+    k = isoc_dat['2mass_ks'] + cdat['dm'] * int(is_data_cat)
+    i1 = isoc_dat['irac_1'] + cdat['dm'] * int(is_data_cat)
+    i4 = isoc_dat['irac_4'] + cdat['dm'] * int(is_data_cat)
+    
     # Cioni
     k0, k1, k2 = cioni_klines(j-k, **cdat)
     cstar = (k < k0) &  (k > k2)

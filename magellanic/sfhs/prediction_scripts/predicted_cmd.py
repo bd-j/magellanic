@@ -128,11 +128,16 @@ if __name__ == "__main__":
     # Define a function for selecting certain "stars" from the
     # isochrone.  Only stars selected by this function will contribute
     # to the CMD
-    def select_function(isochrones, cloud=None):
+    def select_function(isochrones, cloud=None, **extras):
         """Select only certain stars from the isochrones.
         """
-        # No filtering  
-        return isochrones
+        c, o, b, x = cmdutils.boyer_cmd_classes(isochrones, cloud=cloud,
+                                                **extras)
+        # No filtering
+        #return isochrones
+        #Cstars only
+        select = (b | x) & ~o 
+        return isochrones[select]
     
     # Choose colors, mags as lists of lists.  The inner lists should
     # be passable as ``color`` and ``mag`` to the make_cmd() method
@@ -163,7 +168,7 @@ if __name__ == "__main__":
         # generation of the isochrone data to make cmds
         for color, mag in zip(colors, mags):
             #filter the isochrone
-            isoc_dat = select_function(full_isoc)
+            isoc_dat = select_function(full_isoc, cloud=cloud)
             cmd_zc = make_cmd(isoc_dat, tuple(color), tuple(mag), mtot, esfh)
             cmd[i].append(cmd_zc)
 
@@ -187,6 +192,9 @@ if __name__ == "__main__":
         ax.set_title(cloud.upper())
     cfig.show()
 
+    # Plot output sAGB number
+    #efig, eax = pl.subplots(
+
 
     ##### Observed CMD #####
     from magellanic.sfhs.datautils import cloud_cat, catalog_to_cmd
@@ -197,7 +205,7 @@ if __name__ == "__main__":
         ax = oaxes.flat[j]
         appmag = deepcopy(mag)
         appmag[-1] += dm
-        ocmd = catalog_to_cmd(cat, color, appmag, catcols=cols)
+        ocmd = catalog_to_cmd(cat, color, appmag)#, catcols=cols)
         im = ax.imshow(np.log10(ocmd.T), interpolation='nearest',
                        extent=[color[-1].min(), color[-1].max(),
                                appmag[-1].max(), appmag[-1].min()],
@@ -223,5 +231,5 @@ if __name__ == "__main__":
     laxes.set_yscale('log')
     laxes.set_title(cloud.upper())
     laxes.legend(loc=0)
-    #lfig.show()
+    lfig.show()
 
