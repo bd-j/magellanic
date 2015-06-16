@@ -133,7 +133,7 @@ def agb_select_function_cmd(isoc_dat, **kwargs):
     c, o, boyer, xagb = boyer_cmd_classes(isoc_dat, **kwargs)
     return isoc_dat[boyer | xagb]
     
-def boyer_cmd_classes(isoc_dat, cloud='lmc', is_dat_cat=False, **extras):
+def boyer_cmd_classes(isoc_dat, cloud='lmc', is_data_cat=False, **extras):
     """Boyer cmd cuts.
     """
     if cloud.lower() == 'lmc':
