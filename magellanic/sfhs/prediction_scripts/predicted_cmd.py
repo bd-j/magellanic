@@ -88,7 +88,6 @@ def load_data(cloud='lmc'):
         log(years).
     """
     from magellanic import datautils
-    import sedpy.ds9region as ds9
 
     #SFH data
     if cloud.lower() == 'lmc':

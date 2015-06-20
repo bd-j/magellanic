@@ -22,7 +22,7 @@ def xy_to_regname(x,y, cloud='smc'):
     else:
         return '{0}{1}'.format(*reg[0:2])
 
-def regname_to_xy(regname, cloud='smc'):
+def regname_to_xy(regname, cloud='smc', **extras):
     """
     Map region names to image pixels, accounting for the coadded
     pixels in the LMC regions.
@@ -45,7 +45,7 @@ def regname_to_xy(regname, cloud='smc'):
             y = y*2 + np.array([0,1,0,1])
             return list(x), list(y)
         
-def mc_ast(cloud, badenes=False, **extras):
+def mc_ast(cloud, badenes=True, **extras):
     """
     Set up the sky coordinate system.
     """
@@ -109,6 +109,24 @@ def parse_locstring(locstring):
     ra = 15.*( float(loc[1][:-1]) + float(loc[2][:-1])/60.)
     return ra, dec
 
+def make_ds9(cloud, out=None):
+    """Make a ds9 region file containing all of the regions
+    """
+    from sedpy import ds9region as ds9
+    if out is None:
+        out = '{0}_regions_grid.reg'.format(cloud)
+    out = open(out,'w')
+    if cloud.lower() == 'lmc':
+        regions = mcutils.lmc_regions()
+    else:
+        regions = mcutils.smc_regions()
+    regions.pop('header')
+    for name, dat in regions.iteritems():
+        shape, defstring = corners_of_region(name, cloud, string=True)
+        ds9reg = ds9.Polygon(defstring)
+        ds9reg.print_to(fileobj=out, color='red', label=name)
+    out.close()
+
 def sum_sfhs(sfhs1, sfhs2):
     """
     Accumulate individual sets of SFHs into a total set of SFHs.  This
@@ -124,9 +142,6 @@ def sum_sfhs(sfhs1, sfhs2):
         for s1, s2 in zip(out, sfhs2):
             s1['sfr'] += s2['sfr']
         return out
-
-
-
 
 def lmc_regions(filename = lmcfile):
     """Read the Harris and Zaritsky LMC data file ( obtained from

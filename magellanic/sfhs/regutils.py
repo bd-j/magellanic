@@ -1,6 +1,6 @@
 import numpy as np
 import mcutils
-from sedpy import ds9region as ds9
+
 
 def corners_of_region(regname, cloud, string=False):
     """
@@ -30,21 +30,6 @@ def corners_of_region(regname, cloud, string=False):
         tmp = ','.join([ str(val) for pair in zip(rc, dc) for val in pair])
         return 'polygon', tmp
     return 'polygon', rc, dc
-
-def make_ds9(cloud, out=None):
-    if out is None:
-        out = '{0}_regions_grid.reg'.format(cloud)
-    out = open(out,'w')
-    if cloud.lower() == 'lmc':
-        regions = mcutils.lmc_regions()
-    else:
-        regions = mcutils.smc_regions()
-    regions.pop('header')
-    for name, dat in regions.iteritems():
-        shape, defstring = corners_of_region(name, cloud, string=True)
-        ds9reg = ds9.Polygon(defstring)
-        ds9reg.print_to(fileobj=out, color='red', label=name)
-    out.close()
 
 
 

@@ -144,13 +144,13 @@ def boyer_cmd_classes(isoc_dat, cloud='lmc', is_data_cat=False, **extras):
         delta_dm = 0.0
 
 
-    j = isoc_dat['2mass_j'] + cdat['dm'] * int(is_data_cat)
-    k = isoc_dat['2mass_ks'] + cdat['dm'] * int(is_data_cat)
-    i1 = isoc_dat['irac_1'] + cdat['dm'] * int(is_data_cat)
-    i4 = isoc_dat['irac_4'] + cdat['dm'] * int(is_data_cat)
+    j = isoc_dat['2mass_j'] + cdat['dm'] * int( not is_data_cat)
+    k = isoc_dat['2mass_ks'] + cdat['dm'] * int( not is_data_cat)
+    i1 = isoc_dat['irac_1'] + cdat['dm'] * int( not is_data_cat)
+    i4 = isoc_dat['irac_4'] + cdat['dm'] * int( not is_data_cat)
     
     # Cioni
-    k0, k1, k2 = cioni_klines(j-k, **cdat)
+    k0, k1, k2 = cioni_klines(j-k, cloud=cloud, **cdat)
     cstar = (k < k0) &  (k > k2)
     ostar = (k < k0) &  (k > k1) & ~cstar
     cioni = ostar | cstar
@@ -167,11 +167,17 @@ def boyer_cmd_classes(isoc_dat, cloud='lmc', is_data_cat=False, **extras):
             )
     return cstar, ostar, boyer, xagb
         
-def cioni_klines(color, met, dm, **extras):
-    """The cioni classification criteria.  `color` should be j-ks
+def cioni_klines(color, cloud=None, **extras):
+    """The cioni classification criteria, as related by M. Boyer.
+    `color` should be j-ks.  ``met`` is -0.3 for the LMC, and -0.7 for
+    the SMC.  ``dm`` for the SMC is 18.89
     """
     # We add the differential distance modulus to K0 but not to K1 or K2
     #
+    if cloud == 'lmc':
+        met, dm = -0.3, 18.49
+    elif cloud == 'smc':
+        met, dm = -0.7, 18.89
     k0 = -0.48 * color + 13.022 + 0.056 * met + (dm - 18.49)
     k1 = -13.333 * color + 25.293 + 1.568 * met 
     k2 = -13.333 * color + 29.026 + 1.568 * met
@@ -272,10 +278,12 @@ def agb_select_function_cmd_smc(isoc_dat, **extras):
     return isoc_dat[select]          
 
 
-def make_freq_prediction(cloudname, esfh, sps=None,
+def make_freq_prediction(esfh, zmet, sps=None, cloud=None,
                          select_function=agb_select_function,
                          **kwargs):
-
+    """ Make a frequency prediction for the number of objects as a function of time
+    """
+    
     if sps is None:
         import fsps
         sps = fsps.StellarPopulation(compute_vega_mags=True)
@@ -291,17 +299,9 @@ def make_freq_prediction(cloudname, esfh, sps=None,
         except:
             pass
         
-    cloud = cloudname.lower()
-    if cloud == 'smc':
-        #regions = mcutils.smc_regions()
-        zcloud = 0.004
-    elif cloud == 'lmc':
-        #regions = mcutils.lmc_regions()
-        zcloud = 0.008
-        #zcloud = 0.5 * 0.019
-        
+         
     #esfh = regions['AA']['sfhs'][0]
-    sps.params['zmet'] = np.abs(zcloud - sps.zlegend).argmin() + 1
+    sps.params['zmet'] = np.abs(zmet - sps.zlegend).argmin() + 1
     zactual = sps.zlegend[sps.params['zmet'] - 1]
     print(r'Using $Z={0}Z_\odot$'.format(zactual/0.019))
     isoc = sps.isochrones()

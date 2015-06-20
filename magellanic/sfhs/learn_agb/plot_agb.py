@@ -91,7 +91,7 @@ def overplot_sps(result, fax, stype='cmd', **kwargs):
         
     agbtype = {'MG08':0,'CG10':1,'VCJ':2}
     for aname, atype in agbtype.iteritems():
-        nex, zact = sfreq.make_freq_prediction(result['cloud'], result['esfh'],
+        nex, zact = sfreq.make_freq_prediction(result['esfh'], result['zmet'],
                                             select_function=sfunc,
                                             tpagb_norm_type=atype, **kwargs)
         baxes.plot(nex, '-o', label=aname)
@@ -142,7 +142,16 @@ if __name__ == "__main__":
     filename = 'chains/lmc_All_chain.p'
     with open(filename) as f:
         result = pickle.load(f)
-    
+
+    if result['cloud'] == 'smc':
+        #regions = mcutils.smc_regions()
+        result['zmet'] = 0.004
+    elif result['cloud'] == 'lmc':
+        #regions = mcutils.lmc_regions()
+        result['zmet'] = 0.008
+        #zcloud = 0.5 * 0.019
+
+            
     def select(isoc_dat, **kwargs):
         c, o, boyer, xagb = sfreq.boyer_cmd_classes(isoc_dat, **kwargs)    
         return isoc_dat[boyer | xagb]

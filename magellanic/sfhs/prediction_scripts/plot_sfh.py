@@ -33,4 +33,6 @@ for ax, cloud in zip(axes, ['lmc', 'smc']):
 fig.colorbar(images[0], cax, orientation='horizontal')
 [im.set_clim(images[0].get_clim()) for im in images]
 cax.set_xlabel('log M$_{{formed}}$(Z, Age)', fontsize=10)
+cax.xaxis.grid()
+cax.yaxis.grid()
 fig.show()

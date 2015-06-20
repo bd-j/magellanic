@@ -9,6 +9,11 @@ lfbins = np.arange(-15, 10, 0.025)
 lsun, pc = 3.846e33, 3.085677581467192e18
 to_cgs = lsun/(4.0 * np.pi * (pc*10)**2 )
 
+def partial_seds(sps, bands):
+    assert sps.params['sfh'] == 0
+    mags = sps.get_mags(tage=0, bands=bands)
+    return mags, sps.ssp_ages
+    
 def one_region_sed(sfhs, zmet, sps, t_lookback = 0):
     """
     Get the spectrum of one region, given SFHs for each metallicity
