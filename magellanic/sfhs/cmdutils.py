@@ -58,6 +58,8 @@ def partial_cmds(isoc, color, mag):
     """
     agecol = 'age'
     ages = np.unique(isoc[agecol])
+    if len(ages) == 0:
+        return np.zeros([1, len(color[-1])-1, len(mag[-1])-1]), []
     cmds = []
     for age in ages:
         thisage = isoc[agecol] == age

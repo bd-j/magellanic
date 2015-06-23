@@ -49,8 +49,10 @@ def rebin_partial_cmds(pcmds, ages, sfh):
     asfh['t1'] = 10**asfh['t1']
     asfh['t2'] = 10**asfh['t2']
     nsfh = len(asfh)
-    nage, nc, nm = pcmds.shape
+    nc, nm = pcmds.shape[-2:]
     lores_cmds = np.zeros([nsfh, nc, nm])
+    if len(ages) == 0:
+        return lores_cmds
     for i in range(len(asfh)):
         if asfh['t2'][i] < 10**ages.min():
             #print(i)
