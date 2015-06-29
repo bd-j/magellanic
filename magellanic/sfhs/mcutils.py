@@ -84,7 +84,7 @@ def corners_of_region(regname, cloud, string=False, **kwargs):
     crpix, crval, cd, [nx, ny] = mc_ast(cloud, **kwargs)
     rcorners = np.array([0,0,1,1]) * cd[0]
     dcorners = np.array([0,1,1,0]) * cd[1]
-    #get the pixel values
+    #get the pixel indices
     x, y = regname_to_xy(regname, cloud)
     x, y = np.array(x), np.array(y)
     ra = (x-crpix[0])*cd[0] + crval[0]
@@ -143,7 +143,14 @@ def sum_sfhs(sfhs1, sfhs2):
             s1['sfr'] += s2['sfr']
         return out
 
-def lmc_regions(filename = lmcfile):
+def mc_regions(cloud):
+    if cloud.lower() == 'smc':
+        reg = smc_regions()
+    elif cloud.lower() == 'lmc':
+        reg = lmc_regions()
+    return reg
+    
+def lmc_regions(filename=lmcfile):
     """Read the Harris and Zaritsky LMC data file ( obtained from
     http://djuma.as.arizona.edu/~dennis/mcsurvey/Data_Products.html )
     into a dictionary of SFHs.
@@ -217,7 +224,7 @@ def process_lmc_sfh(dat):
 
     return all_sfhs, zlegend
     
-def smc_regions(filename = smcfile):
+def smc_regions(filename=smcfile):
     """Read the Harris and Zaritsky SMC data file ( obtained from
     http://djuma.as.arizona.edu/~dennis/mcsurvey/Data_Products.html )
     into a dictionary of SFHs.

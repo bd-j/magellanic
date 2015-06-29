@@ -37,20 +37,6 @@ lmccols = {'RA': 'RA',
            'corners': ''
            }
 
-#rdir = '/Users/bjohnson/Projects/magellanic/sfhs/results_predicted/'
-
-def photometer(imname, region):
-    import astropy.wcs as pywcs
-    image = pyfits.getdata(imname)
-    header = pyfits.getheader(imname)
-    wcs = pywcs.WCS(header)
-    ps = np.hypot(*wcs.wcs.cd*3600.)
-    yy, xx = np.indices(image.shape)
-    ra, dec = wcs.wcs_pix2world(xx.flatten(), yy.flatten(), 0)
-    sel = region.contains(ra.flatten(), dec.flatten())
-    flux = np.nansum(image.flatten()[sel])
-    abmag = -2.5*np.log10((flux * 1e6*2.35e-11*ps.prod())/3631.)
-    return abmag
 
 def select(catalog, coldict, region=None, codes=None, **extras):
     """Select stars of types given by ``codes`` from the supplied ``catalog``.
@@ -169,6 +155,55 @@ def cloud_cat(cloud, convert=False):
         catalog.dtype.names = tuple(n)
         
     return catalog, cols
+
+def region_photometer(cloud, regnames, imname):
+    """A simplified photometry for Harris and Zaritsky rectangular
+    regions oriented N-S and E-W.
+    """
+    import astropy.wcs as pywcs
+    from mcutils import corners_of_region
+    
+    image = pyfits.getdata(imname)
+    header = pyfits.getheader(imname)
+    wcs = pywcs.WCS(header)
+    ps = np.hypot(*wcs.wcs.cd*3600.)
+    yy, xx = np.indices(image.shape)
+    ra, dec = wcs.wcs_pix2world(xx.flatten(), yy.flatten(), 0)
+    del(yy)
+    del(xx)
+    ra = ra.flatten()
+    dec = dec.flatten()
+    flatim = image.flatten()
+    flux = np.zeros(len(regnames))
+    for i, rname in enumerate(regnames):
+        _, rc, dc = corners_of_region(rname, cloud, string=False)
+        sel = ((ra <= rc.max()) & (ra > rc.min()) &
+               (dec <= dec.max()) & (dec > dc.min()))
+        flux[i] = np.nansum(flatim[sel])
+    abmag = -2.5*np.log10((np.array(flux) * 1e6*2.35e-11*ps.prod())/3631.)
+    return abmag    
+        
+def photometer(imname, regions, pad=[0,0]):
+    """Given an image name (including path) and a set of regions,
+    produce total fluxes within those regions
+    """
+    import astropy.wcs as pywcs
+    image = pyfits.getdata(imname)
+    header = pyfits.getheader(imname)
+    wcs = pywcs.WCS(header)
+    ps = np.hypot(*wcs.wcs.cd*3600.)
+    yy, xx = np.indices(image.shape)
+    ra, dec = wcs.wcs_pix2world(xx.flatten(), yy.flatten(), 0)
+    ra = ra.flatten()
+    dec = dec.flatten()
+    points = np.vstack((ra,dec)).T
+    flatim = image.flatten()
+    flux = []
+    for region in regions:
+        sel = region.contains(points=points, fast=False, pad=pad)
+        flux.append(np.nansum(flatim[sel]))
+    abmag = -2.5*np.log10((np.array(flux) * 1e6*2.35e-11*ps.prod())/3631.)
+    return abmag
 
 if __name__ == '__main__':
     from sedpy import ds9region as ds9reg

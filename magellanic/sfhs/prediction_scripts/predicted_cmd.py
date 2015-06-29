@@ -92,12 +92,7 @@ def load_data(cloud='lmc'):
     from magellanic import datautils
 
     #SFH data
-    if cloud.lower() == 'lmc':
-        print('doing lmc')
-        regions = mcutils.lmc_regions()
-    else:
-        print('doing smc')
-        regions = mcutils.smc_regions()
+    regions = mcutils.mc_regions(cloud)
     regions.pop('header')
 
     #convert SFHs to mass formed per bin
