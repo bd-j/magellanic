@@ -11,7 +11,7 @@ presentations
 */*/detritus
 */*/results/
 magellanic/starfit/plots/galex_fov/*png
-magellanic/sfhs/lf_data/*png
-magellanic/sfhs/*png
-magellanic/sfhs/stamps
+magellanic/starfit/plots/png
 magellanic/sfhs/regions/
+magellanic/sfhs/learn_agb/chains
+magellanic/sfhs/prediction_scripts/figures*
