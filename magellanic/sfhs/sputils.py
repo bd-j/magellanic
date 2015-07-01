@@ -33,7 +33,7 @@ def burst_sfh(fwhm_burst=0.05, f_burst=0.5, contrast=5,
         A binned sfh in numpy structured array format.  Usually the
         result of sfhutils.load_angst_sfh()
         
-    :param bin_res: default 10
+    :param bin_res: default 20
         Factor by which to increase the time resolution of the output
         grid, relative to the shortest bin width in the supplied SFH.
 
@@ -65,11 +65,19 @@ def burst_sfh(fwhm_burst=0.05, f_burst=0.5, contrast=5,
     else:
         dt = np.min(sigma)/5. #make sure you sample the bursts reasonably well
     times = np.arange(np.round(sfh['t2'].max()/dt)) * dt
+    #times = np.arange(sfh[0]['t1'], sfh['t2'].max() + dt/2, dt)
+
+    sfr = gauss(times, tburst, A, sigma)
+    
     # Figure out which bin each time is in
     bins = [sfh[0]['t1']] + sfh['t2'].tolist()
-    bin_num = np.digitize(times, bins) -1
+    bin_num = np.digitize(times, bins) - 1
+    #if np.any(bin_num < 0):
+    #    print('Warning - some times are not in the SFH')
+    has_bin = bin_num >= 0
+    sfr[has_bin] += np.array(a)[bin_num[has_bin]]
     # Calculate SFR from all components
-    sfr = np.array(a)[bin_num] + gauss(times, tburst, A, sigma)
+    #sfr = np.array(a)[bin_num] + gauss(times, tburst, A, sigma)
     
     return times, sfr, f_burst_actual
 

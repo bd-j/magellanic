@@ -61,6 +61,7 @@ def rebin_partial_cmds(pcmds, ages, sfh):
         asfh['sfr'][i] = 1.0/(asfh['t2'][i] - asfh['t1'][i])
         lt, sfr, fact = sputils.burst_sfh(f_burst=0.0, sfh = asfh, bin_res=20)
         aw = sputils.sfh_weights(lt, sfr, 10**ages)
+        aw /= aw.sum(axis=-1)[:,None]
         lores_cmds[i,:,:] = (aw[0,:][:,None,None] * pcmds).sum(axis = 0)
         
     return lores_cmds
