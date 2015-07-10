@@ -131,9 +131,9 @@ if __name__ == "__main__":
     # Plot images
     fig, axes, cax = plot_images(pimages[i], oimages[i], norm[i],
                                  bandname=bands[i], delta=np.log10(mratio))
-    fig.suptitle('{0} {1}'.format(cloud, isocname))
+    fig.suptitle('{0} {1} tpgb_type:{2}'.format(cloud, isocname, sps.params['tpagb_norm_type']))
     fig.show()
-    #fig.savefig('figures/cimage_{0}_{1}_{2}.pdf'.format(cloud, bands[i], isocname))
+    fig.savefig('figures/cimage_{0}_{1}_{2}.pdf'.format(cloud, bands[i], isocname))
 
     #sys.exit()
     
@@ -145,10 +145,10 @@ if __name__ == "__main__":
     ax.axhline(1.0, linestyle='--', color='black')
     ax.axhline(mratio, linestyle=':', color='red', label='Median')
     ax.set_ylabel('Pred/Obs')
-    ax.set_xlabel('Predicted Flux')
+    ax.set_xlabel('Predicted Flux (AB maggies)')
     ax.text(0.8, 0.9, 'median={:4.3f}'.format(mratio), transform=ax.transAxes)
-    #fig.savefig('figures/fluxratio_{0}_{1}_{2}.pdf'.format(cloud, bands[i], isocname))
-    fig.suptitle('{0} {1}'.format(cloud, isocname))
+    fig.suptitle('{0} {1} tpgb:{2}'.format(cloud, isocname, sps.params['tpagb_norm_type']))
+    fig.savefig('figures/fluxratio_{0}_{1}_{2}.pdf'.format(cloud, bands[i], isocname))
     fig.show()
 
     

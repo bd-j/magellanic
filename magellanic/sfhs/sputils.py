@@ -113,7 +113,6 @@ def bursty_sps(lookback_time, lt, sfr, sps, **extras):
         lookback_time.  Useful for debugging.        
     """
     
-    dt = lt[1] - lt[0]
     sps.params['sfh'] = 0 #make sure using SSPs
     # Get *all* the ssps
     zmet = sps.params['zmet']-1
@@ -171,7 +170,8 @@ def bursty_lf(lookback_time, lt, sfr, sps_lf, **extras):
     return bins, int_lf, aw
 
 
-def sfh_weights(lt, sfr, ssp_ages, lookback_time=0, **extras):
+def sfh_weights(lt, sfr, ssp_ages, lookback_time=0,
+                renormalize=True, **extras):
     """        
     :param lt: ndarray, shape (ntime)
         The lookback time sequence of the provided SFH.  Assumed to
@@ -201,7 +201,7 @@ def sfh_weights(lt, sfr, ssp_ages, lookback_time=0, **extras):
         sfr_ssp = np.interp(ssp_ages, lt-tl, sfr, left=0.0, right=0.0)
         tmp_t = np.concatenate([ssp_ages, lt[valid]-tl])
         tmp_sfr = np.concatenate([sfr_ssp, sfr[valid]])
-        #sort the augmented array by age
+        #sort the augmented array by lookback time
         order = tmp_t.argsort()
         tmp_t = tmp_t[order]
         tmp_sfr = tmp_sfr[order]
@@ -215,6 +215,8 @@ def sfh_weights(lt, sfr, ssp_ages, lookback_time=0, **extras):
                                               tmp_dt[:, None]).flatten(),
                                    minlength = len(ssp_ages) )
         aw[i,:] = agg_weights
+        if renormalize:
+            aw[i,:] /= agg_weights.sum()
     return aw
 
 def gauss(x, mu, A, sigma):
@@ -316,12 +318,10 @@ def convert_burst_pars(fwhm_burst = 0.05, f_burst=0.5, contrast=5,
     return [a, tburst, A, sigma]
 
 
-
 def weights_1DLinear(model_points, target_points,
                      extrapolate = False, left=0., right=0.,
                      **extras):
-    """
-    The interpolation weights are determined from 1D linear
+    """The interpolation weights are determined from 1D linear
     interpolation.
     
     :param model_points: ndarray, shape(nmod)
